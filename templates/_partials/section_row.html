@@ -1,0 +1,18 @@
+<section class="row">
+  <div class="row__header">
+    <h3>{{ title }}</h3>
+    <a class="more" href="#">Все</a>
+  </div>
+  <div class="row__scroller">
+    {% for it in items %}
+      <a href="{% url 'content_detail' it.id %}" class="card-tile" title="{{ it.title }}">
+        <img src="{{ it.poster_url }}" alt="{{ it.title }}" loading="lazy" />
+        <span class="rating" aria-label="оценка">{{ it.rating }}</span>
+        <div class="tile__hover">
+          <div class="tile__title">{{ it.title }}</div>
+          <div class="tile__meta">{{ it.year }}, {{ it.kind_display }}</div>
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+</section>

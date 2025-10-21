@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}{{ content.title }} — Онлайн‑кинотеатр{% endblock %}
+{% block content %}
+<section class="content-detail">
+  <div class="info">
+    <h1 class="title">{{ content.title }}</h1>
+    <div class="meta">
+      <span class="badge">{{ content.rating|default:'—' }}</span>
+      <span>{{ content.year }}</span>
+      <span>{{ content.country }}</span>
+      <span>{{ content.age_limit }}+</span>
+      <span>{{ content.langs_display }}</span>
+    </div>
+    <p class="desc">{{ content.description }}</p>
+    <div class="actions">
+      {% if content.can_watch %}
+        <a class="btn btn-primary" href="#">Смотреть {{ content.type|lower }}</a>
+      {% elif content.requires_subscription %}
+        <a class="btn" href="/subscriptions">Купить подписку</a>
+      {% else %}
+        <a class="btn" href="#">Приобрести</a>
+      {% endif %}
+      <a class="btn" href="#" target="_blank">Трейлер</a>
+      <button class="icon-btn" data-add-watchlist>＋</button>
+    </div>
+  </div>
+  <div class="art">
+    <img src="{{ content.poster_url }}" alt="{{ content.title }}">
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block title %}Главная — Онлайн‑кинотеатр{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="hero__slider" data-autoplay>
+    {% for item in hero_items %}
+    <article class="hero__slide" style="background-image:url('{{ item.backdrop_url }}')">
+      <div class="hero__content">
+        <h2 class="hero__title">{{ item.title }}</h2>
+        <p class="hero__desc">Подборка интересных новинок</p>
+        <div class="hero__actions">
+          {% if item.can_watch %}
+            <a href="{% url 'content_detail' item.id %}" class="btn btn-primary">Смотреть</a>
+          {% elif item.requires_subscription %}
+            <a href="/subscriptions" class="btn">Купить подписку</a>
+          {% else %}
+            <a href="{% url 'content_detail' item.id %}" class="btn">Приобрести</a>
+          {% endif %}
+        </div>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+{% if continue_watch %}
+  {% include '_partials/section_row.html' with title='Продолжить просмотр' items=continue_watch %}
+{% endif %}
+
+{% if watchlist %}
+  {% include '_partials/section_row.html' with title='Вы хотели посмотреть' items=watchlist %}
+{% endif %}
+
+{% include '_partials/section_row.html' with title='Аниме' items=anime %}
+{% include '_partials/section_row.html' with title='Сериалы' items=series %}
+{% include '_partials/section_row.html' with title='Фильмы' items=movies %}
+{% include '_partials/section_row.html' with title='Мультфильмы' items=cartoons %}
+{% endblock %}

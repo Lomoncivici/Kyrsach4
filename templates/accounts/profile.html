@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% block title %}Мой аккаунт — Онлайн-кинотеатр{% endblock %}
+{% block content %}
+<section class="profile">
+  <h1>Профиль</h1>
+  <div class="grid">
+    <div class="panel">
+      <h2>Учётные данные</h2>
+
+      <form method="post" action="">
+        {% csrf_token %}
+        {% if messages %}
+          <div class="muted" style="margin-bottom:8px;">
+            {% for m in messages %}{{ m }}{% endfor %}
+          </div>
+        {% endif %}
+        <div class="field">
+          <label>Логин</label>
+          <input type="text" name="username" value="{{ user.username }}" required>
+        </div>
+        <div class="field">
+          <label>Почта</label>
+          <input type="email" name="email" value="{{ user.email }}">
+        </div>
+        <div class="field">
+          <label>Телефон</label>
+          <input type="text" name="phone" value="{{ user.profile.phone }}">
+        </div>
+        <button class="btn btn-primary" type="submit">Сохранить</button>
+      </form>
+    </div>
+
+    <div class="panel">
+      <h2>Подписка</h2>
+      {% if subscription %}
+        <p>План: <b>{{ subscription.plan_name }}</b></p>
+        <p>Активна до: <b>{{ subscription.active_until }}</b></p>
+      {% else %}
+        <p>Нет активной подписки.</p>
+        <a class="btn" href="/subscriptions">Оформить</a>
+      {% endif %}
+    </div>
+
+    <div class="panel">
+      <h2>Покупки</h2>
+      <ul class="list">
+        {% for p in purchases %}
+          <li><a href="{% url 'content_detail' p.content_id %}">{{ p.title }}</a> — {{ p.date }}</li>
+        {% empty %}
+          <li>Пока пусто</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="panel">
+      <h2>Мои оценки</h2>
+      <ul class="list">
+        {% for r in ratings %}
+          <li><a href="{% url 'content_detail' r.content_id %}">{{ r.title }}</a> — ★ {{ r.rating }}</li>
+        {% empty %}
+          <li>Ещё нет оценок</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="panel">
+      <h2>История просмотров</h2>
+      <ul class="list">
+        {% for h in history %}
+          <li><a href="{% url 'content_detail' h.content_id %}">{{ h.title }}</a> — {{ h.progress_percent }}%</li>
+        {% empty %}
+          <li>История пуста</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="panel">
+      <h2>Поддержка</h2>
+      <p class="muted">Нужна помощь ? Напишите в поддержку.</p>
+      <button class="btn btn-primary" id="openSupport">Открыть чат</button>
+    </div>
+
+  </div>
+</section>
+
+<div id="supportModal" class="modal">
+  <div class="modal__inner">
+    <header class="modal__header">
+      <h3>Чат поддержки</h3>
+      <button class="icon-btn" data-close>✕</button>
+    </header>
+    <div class="chat" id="chatBox"></div>
+    <form class="chat__input" method="post" action="/support/send">
+      {% csrf_token %}
+      <input name="text" placeholder="Ваш вопрос…" required>
+      <button class="btn btn-primary" type="submit">Отправить</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
