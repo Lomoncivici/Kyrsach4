@@ -3,29 +3,52 @@
 {% block content %}
 <section class="profile">
   <h1>Профиль</h1>
+
+  {% if messages %}
+    <div class="messages">
+      {% for m in messages %}
+        <div class="alert {% if m.tags %}alert-{{ m.tags }}{% endif %}">{{ m }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
   <div class="grid">
     <div class="panel">
       <h2>Учётные данные</h2>
 
       <form method="post" action="">
         {% csrf_token %}
-        {% if messages %}
-          <div class="muted" style="margin-bottom:8px;">
-            {% for m in messages %}{{ m }}{% endfor %}
-          </div>
-        {% endif %}
-        <div class="field">
+
+        <div class="field {% if field_errors.username %}has-error{% endif %}">
           <label>Логин</label>
-          <input type="text" name="username" value="{{ user.username }}" required>
+          <input type="text"
+                 name="username"
+                 value="{{ form_username|default:user.username }}"
+                 required
+                 pattern="[A-Za-z0-9._-]{5,32}"
+                 title="5–32 символов: латиница, цифры, . _ -">
+          {% if field_errors.username %}<div class="error">{{ field_errors.username }}</div>{% endif %}
         </div>
-        <div class="field">
+
+        <div class="field {% if field_errors.email %}has-error{% endif %}">
           <label>Почта</label>
-          <input type="email" name="email" value="{{ user.email }}">
+          <input type="email"
+                 name="email"
+                 value="{{ form_email|default:user.email }}"
+                 required>
+          {% if field_errors.email %}<div class="error">{{ field_errors.email }}</div>{% endif %}
         </div>
-        <div class="field">
+
+        <div class="field {% if field_errors.phone %}has-error{% endif %}">
           <label>Телефон</label>
-          <input type="text" name="phone" value="{{ user.profile.phone }}">
+          <input type="text"
+                 name="phone"
+                 value="{{ form_phone|default:user.profile.phone }}"
+                 pattern="^\+?\d{10,15}$"
+                 title="+79991234567 (10–15 цифр)">
+          {% if field_errors.phone %}<div class="error">{{ field_errors.phone }}</div>{% endif %}
         </div>
+
         <button class="btn btn-primary" type="submit">Сохранить</button>
       </form>
     </div>
@@ -76,10 +99,9 @@
 
     <div class="panel">
       <h2>Поддержка</h2>
-      <p class="muted">Нужна помощь ? Напишите в поддержку.</p>
+      <p class="muted">Нужна помощь? Напишите в поддержку.</p>
       <button class="btn btn-primary" id="openSupport">Открыть чат</button>
     </div>
-
   </div>
 </section>
 

@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Вход — Онлайн-кинотеатр{% endblock %}
+{% block content %}
+<section class="center-card">
+  <div class="card auth-card">
+    <h1 class="card__title">Войдите</h1>
+    <form method="post" action="">
+      {% csrf_token %}
+      <div class="field">
+        <label>Логин, email или телефон</label>
+        <input type="text" name="login" required>
+      </div>
+      <div class="field">
+        <label>Пароль</label>
+        <input type="password" name="password" required>
+      </div>
+      <button class="btn btn-primary w-100" type="submit">Войти</button>
+    </form>
+    <div class="muted mt-2">
+      Нет аккаунта? <a href="/register">Создать</a>
+    </div>
+    {% if messages %}
+        <div class="messages">
+            {% for m in messages %}
+            <div class="alert {% if m.tags %}alert-{{ m.tags }}{% endif %}">{{ m }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

@@ -158,3 +158,10 @@ body{margin:0;color:var(--text);background:var(--bg);font:16px/1.4 system-ui,Seg
   }
 }
 .support { margin-top: 16px; }
+.messages { margin: 10px auto; width: 90%; max-width: 500px; }
+.alert { padding: 10px 14px; border-radius: 6px; margin-bottom: 8px; }
+.alert-error { background: #ffd7d7; color: #8b0000; }
+.alert-success { background: #d9ffe2; color: #046d3c; }
+.alert-warning { background: #fff5cc; color: #8a6d00; }
+.field.has-error input { border-color:#e74c3c; }
+.error { color:#e74c3c; font-size: 0.9rem; margin-top:4px; }
