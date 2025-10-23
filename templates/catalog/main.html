@@ -9,13 +9,9 @@
         <h2 class="hero__title">{{ item.title }}</h2>
         <p class="hero__desc">Подборка интересных новинок</p>
         <div class="hero__actions">
-          {% if item.can_watch %}
-            <a href="{% url 'content_detail' item.id %}" class="btn btn-primary">Смотреть</a>
-          {% elif item.requires_subscription %}
-            <a href="/subscriptions" class="btn">Купить подписку</a>
-          {% else %}
-            <a href="{% url 'content_detail' item.id %}" class="btn">Приобрести</a>
-          {% endif %}
+          <a href="{% url 'content_detail' item.id %}" class="btn btn-primary">
+            {% if item.is_free %}Смотреть{% else %}По подписке{% endif %}
+          </a>
         </div>
       </div>
     </article>

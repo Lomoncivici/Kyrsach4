@@ -101,8 +101,20 @@ body{margin:0;color:var(--text);background:var(--bg);font:16px/1.4 system-ui,Seg
 .field input{background:#0f1117;border:1px solid #2a2f3a;color:#fff;border-radius:12px;padding:12px}
 .hero{position:relative;height:62vh;min-height:420px}
 .hero__slider{position:relative;height:100%;overflow:hidden;border-radius:18px}
-.hero__slide{position:absolute;inset:0;background-size:cover;background-position:center;transition:opacity .6s ease;opacity:0}
-.hero__slide.active{opacity:1}
+.hero__slide{
+  position:absolute;
+  inset:0;
+  background-size:cover;
+  background-position:center;
+  transition:opacity .6s ease;
+  opacity:0;
+  pointer-events:none;
+}
+.hero__slide.active{
+  opacity:1;
+  pointer-events:auto;
+  z-index:1;
+}
 .hero__content{position:absolute;left:32px;bottom:30px;max-width:600px;background:linear-gradient(90deg,rgba(0,0,0,.6),rgba(0,0,0,0));padding:16px 20px;border-radius:14px}
 .hero__title{font-size:38px;margin:0 0 10px}
 .hero__desc{opacity:.95}

@@ -19,3 +19,12 @@ def get_content(pk):
 def rating_map(ids):
     rows = VContentWithRating.objects.filter(id__in=ids).values("id","avg_rating")
     return {r["id"]: r["avg_rating"] for r in rows}
+
+def to_ctx_item(c):
+    return {
+        "id": c.id,
+        "title": c.title,
+        "backdrop_url": c.cover_image.url if c.cover_image else "",
+        "poster_url": c.cover_image.url if c.cover_image else "",
+        "is_free": c.is_free,
+    }

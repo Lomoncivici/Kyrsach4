@@ -1,6 +1,7 @@
 from django.db import models
 
-def t(name): return f'cinema"."{name}'
+def t(name: str) -> str:
+    return f'"cinema"."{name}"'
 
 class MediaAsset(models.Model):
     id = models.UUIDField(primary_key=True)
