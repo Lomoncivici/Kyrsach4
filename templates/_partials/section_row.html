@@ -1,3 +1,4 @@
+{% if items and items|length > 0 %}
 <section class="row">
   <div class="row__header">
     <h3>{{ title }}</h3>
@@ -16,3 +17,4 @@
     {% endfor %}
   </div>
 </section>
+{% endif %}

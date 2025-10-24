@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block head_title %}Моё{% endblock %}
+
+{% block content %}
+<section class="container" style="max-width:1100px;margin:0 auto;">
+  <h1 style="margin:10px 0 20px;">Моё</h1>
+
+  <div class="my-section">
+    <h2>Покупки</h2>
+    {% if purchases %}
+      <div class="cards">
+        {% for p in purchases %}
+          <a class="card" href="{{ p.url }}">
+            {% if p.poster_url %}<img src="{{ p.poster_url }}" alt="">{{% endif %}
+            <div class="card-title">{{ p.title }}</div>
+            {% if p.when %}<div class="card-meta">Куплено: {{ p.when|date:"d.m.Y H:i" }}</div>{% endif %}
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty">Пока пусто.</div>
+    {% endif %}
+  </div>
+
+  <div class="my-section">
+    <h2>История просмотра</h2>
+    {% if history %}
+      <div class="cards">
+        {% for h in history %}
+          <a class="card" href="{{ h.url }}">
+            {% if h.poster_url %}<img src="{{ h.poster_url }}" alt="">{{% endif %}
+            <div class="card-title">{{ h.title }}</div>
+            {% if h.when %}<div class="card-meta">Просмотрено: {{ h.when|date:"d.m.Y H:i" }}</div>{% endif %}
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty">Записей пока нет.</div>
+    {% endif %}
+  </div>
+
+  <div class="my-section">
+    <h2>Мои оценки</h2>
+    {% if ratings %}
+      <div class="cards">
+        {% for r in ratings %}
+          <a class="card" href="{{ r.url }}">
+            {% if r.poster_url %}<img src="{{ r.poster_url }}" alt="">{{% endif %}
+            <div class="card-title">{{ r.title }}</div>
+            <div class="card-meta">Оценка: {{ r.rating }} / 5{% if r.when %} • {{ r.when|date:"d.m.Y H:i" }}{% endif %}</div>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty">Вы ещё ничего не оценивали.</div>
+    {% endif %}
+  </div>
+</section>
+
+<link rel="stylesheet" href="{% static 'css/my.css' %}">
+{% endblock %}

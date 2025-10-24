@@ -1,0 +1,11 @@
+.my-section{margin:24px 0}
+.my-section h2{margin:0 0 12px;font-size:20px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
+.card{
+  display:block;background:#12151e;border:1px solid #222838;border-radius:12px;
+  overflow:hidden;text-decoration:none;color:#e6eaf0
+}
+.card img{width:100%;height:260px;object-fit:cover;display:block}
+.card-title{padding:10px 12px;font-weight:600;line-height:1.2;min-height:48px}
+.card-meta{padding:0 12px 12px;color:#9aa4b2;font-size:12px}
+.empty{opacity:.7;padding:8px 0}

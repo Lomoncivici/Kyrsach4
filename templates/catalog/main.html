@@ -7,11 +7,11 @@
     <article class="hero__slide" style="background-image:url('{{ item.backdrop_url }}')">
       <div class="hero__content">
         <h2 class="hero__title">{{ item.title }}</h2>
-        <p class="hero__desc">Подборка интересных новинок</p>
+        <p class="hero__subtitle hero__subtitle--clamp">
+          {{ item.description }}
+        </p>
         <div class="hero__actions">
-          <a href="{% url 'content_detail' item.id %}" class="btn btn-primary">
-            {% if item.is_free %}Смотреть{% else %}По подписке{% endif %}
-          </a>
+          <a class="btn hero__cta" href="{{ item.cta_href }}">{{ item.cta_label }}</a>
         </div>
       </div>
     </article>
@@ -19,8 +19,8 @@
   </div>
 </section>
 
-{% if continue_watch %}
-  {% include '_partials/section_row.html' with title='Продолжить просмотр' items=continue_watch %}
+{% if user.is_authenticated and continue_watch and continue_watch|length > 0 %}
+  {% include "_partials/section_row.html" with title="Продолжить просмотр" items=continue_watch %}
 {% endif %}
 
 {% if watchlist %}

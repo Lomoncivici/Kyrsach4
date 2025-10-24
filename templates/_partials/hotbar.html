@@ -5,7 +5,7 @@
   <nav class="hotbar__nav">
 
   {% if user.is_authenticated %}
-    <a href="/my" class="nav-link">Моё</a>
+    <a href="{% url 'catalog:my_page' %}" class="nav-link">Моё</a>
     <a href="/subscriptions" class="nav-link">Подписки</a>
   {% else %}
     <a href="/login" class="nav-link">Моё</a>
@@ -21,9 +21,9 @@
     </form>
     {% if request.user.is_authenticated %}
   <div class="user-menu">
-    <a class="avatar" href="/account" title="Аккаунт">{{ request.user.username|first|upper }}</a>
+    <a class="avatar" href="profile/" title="Аккаунт">{{ request.user.username|first|upper }}</a>
     <div class="user-menu__dropdown">
-      <a class="menu-item" href="/account">Профиль</a>
+      <a class="menu-item" href="profile/">Профиль</a>
       <form action="/logout/" method="post">
         {% csrf_token %}
         <button type="submit" class="menu-item as-button">Выйти</button>

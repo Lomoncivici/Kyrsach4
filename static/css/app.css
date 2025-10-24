@@ -177,3 +177,31 @@ body{margin:0;color:var(--text);background:var(--bg);font:16px/1.4 system-ui,Seg
 .alert-warning { background: #fff5cc; color: #8a6d00; }
 .field.has-error input { border-color:#e74c3c; }
 .error { color:#e74c3c; font-size: 0.9rem; margin-top:4px; }
+.hero__subtitle{margin-top:.5rem;max-width:min(70ch, 90%);line-height:1.4}
+.hero__subtitle--clamp{
+  display:-webkit-box;
+  -webkit-line-clamp:3;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+
+.hidden{display:none}
+
+.series-panel{
+  border:1px solid #2a2f3a;
+  border-radius:12px;
+  background:#0f1117;
+  padding:12px;
+  margin:16px 0;
+}
+.series-panel .panel-title{font-weight:600; margin-bottom:8px; color:#e6eaf0;}
+.seasons-grid{display:flex;flex-wrap:wrap;gap:10px}
+.season-btn,
+.episode-btn{
+  padding:10px 12px;
+  border-radius:10px;
+  border:1px solid #2a2f3a;
+  background:#111522;
+  color:#e6eaf0;
+  cursor:pointer;
+}

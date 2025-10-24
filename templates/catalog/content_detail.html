@@ -1,31 +1,114 @@
 {% extends 'base.html' %}
-{% block title %}{{ content.title }} — Онлайн‑кинотеатр{% endblock %}
+{% load static %}
+
+{% block head_title %}{{ content.title }}{% endblock %}
+
 {% block content %}
 <section class="content-detail">
   <div class="info">
     <h1 class="title">{{ content.title }}</h1>
-    <div class="meta">
-      <span class="badge">{{ content.rating|default:'—' }}</span>
-      <span>{{ content.year }}</span>
-      <span>{{ content.country }}</span>
-      <span>{{ content.age_limit }}+</span>
-      <span>{{ content.langs_display }}</span>
+
+    <div class="meta-row">
+      {% if content.year %}<span class="year">{{ content.year }}</span>{% endif %}
+      <span class="avg" id="avgRating">{{ content.rating|default:"-" }}</span>
+
+      <!-- Рейтинг (0.5 шага) -->
+      <div id="ratingBar"
+           class="rating-bar"
+           data-content-id="{% url 'catalog:rate_content' content.id %}">
+        <div class="rating-bar__fill"></div>
+        {% for i in "0123456789" %}
+          <button type="button" class="rating-bar__step" aria-label="оценить"></button>
+        {% endfor %}
+      </div>
     </div>
-    <p class="desc">{{ content.description }}</p>
-    <div class="actions">
-      {% if content.can_watch %}
-        <a class="btn btn-primary" href="#">Смотреть {{ content.type|lower }}</a>
-      {% elif content.requires_subscription %}
-        <a class="btn" href="/subscriptions">Купить подписку</a>
-      {% else %}
-        <a class="btn" href="#">Приобрести</a>
+
+    {% if content.description %}
+      <p class="desc">{{ content.description }}</p>
+    {% endif %}
+
+    <div class="actions" style="margin-top:16px; display:flex; gap:10px;">
+      {% if content.trailer_url %}
+        <button id="openTrailer" class="btn">Трейлер</button>
       {% endif %}
-      <a class="btn" href="#" target="_blank">Трейлер</a>
-      <button class="icon-btn" data-add-watchlist>＋</button>
+      {% if not content.can_watch %}
+        <a id="ctaBtn" class="btn btn-primary" href="{{ content.cta_url }}">{{ content.cta_label }}</a>
+      {% endif %}
     </div>
   </div>
   <div class="art">
-    <img src="{{ content.poster_url }}" alt="{{ content.title }}">
+    {% if content.poster_url %}
+      <img id="poster" src="{{ content.poster_url }}" alt="{{ content.title }}">
+    {% endif %}
   </div>
 </section>
+
+<!-- Плеер (для фильма сразу грузится, если доступ есть) -->
+<section class="player-block">
+  {% if content.type == "movie" %}
+    <div style="width:100%;max-width:1000px;margin:0 auto;">
+      <!-- сюда JS вставит iframe (YouTube/RuTube) либо активирует <video> -->
+      <div id="moviePlayerBox" class="player-box">
+        <video id="moviePlayer" class="player" preload="metadata" controls style="display:none;"></video>
+      </div>
+    </div>
+  {% else %}
+    <div class="series-block" style="width:100%;max-width:1000px;margin:0 auto;">
+
+      <!-- ЕДИНАЯ ПАНЕЛЬ ВЫБОРА -->
+      <div id="seriesPanel" class="series-panel">
+        <div id="seasonsView">
+          <div class="panel-title">Сезоны</div>
+          <div id="seasonsGrid" class="seasons-grid">
+            {% for s in seasons %}
+              <button class="season-btn" data-sn="{{ s.season_num }}">Сезон {{ s.season_num }}</button>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div id="episodesView" class="hidden">
+          <div class="panel-title">Серии</div>
+          <div id="episodesList" class="episodes"></div>
+          <div style="margin-top:10px">
+            <button id="backToSeasons" class="btn">К сезонам</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Плеер -->
+      <div id="seriesPlayerBox" class="player-box">
+        <video id="seriesPlayer" class="player" preload="metadata" controls style="display:none;"></video>
+      </div>
+      
+      <!-- JSON-дерево сезонов для JS -->
+      {{ seasons|json_script:"seasons-data" }}
+    </div>
+  {% endif %}
+</section>
+
+<!-- Модалка для трейлера -->
+<div id="trailerModal" class="modal">
+  <div class="modal__backdrop"></div>
+  <div class="modal__dialog">
+    <button id="closeTrailer" class="modal__close" aria-label="Закрыть">×</button>
+    <div id="trailerContainer" style="aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden;"></div>
+  </div>
+</div>
+
+<!-- Конфиг для JS -->
+<script>
+  window.CONTENT_CTX = {
+    id: "{{ content.id }}",
+    type: "{{ content.type }}",
+    canWatch: {{ content.can_watch|yesno:"true,false" }},
+    accessMode: "{{ content.access_mode }}",
+    ctaUrl: "{{ content.cta_url }}",
+    posterUrl: "{{ content.poster_url }}",
+    trailerUrl: "{{ content.trailer_url }}",
+    movieSourceUrl: "{% if content.type == 'movie' %}{% url 'catalog:movie_source' content.id %}{% endif %}",
+    episodeSourceTmpl: "{% if content.type == 'series' %}{% url 'catalog:episode_source' content.id 1 1 %}{% endif %}".replace('/1/1/', '/{sn}/{en}/')
+  };
+</script>
+<script src="{% static 'js/content_detail.js' %}"></script>
+<link rel="stylesheet" href="{% static 'css/content_detail.css' %}">
 {% endblock %}

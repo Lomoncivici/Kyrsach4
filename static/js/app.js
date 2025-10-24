@@ -9,7 +9,7 @@
   if(slider){
     const slides=[...slider.querySelectorAll('.hero__slide')];
     let i=0; slides[0]?.classList.add('active');
-    let timer; const play=()=>{timer=setInterval(()=>{slides[i].classList.remove('active');i=(i+1)%slides.length;slides[i].classList.add('active')}, 4000)};
+    let timer; const play=()=>{timer=setInterval(()=>{slides[i].classList.remove('active');i=(i+1)%slides.length;slides[i].classList.add('active')}, 7000)};
     const stop=()=>{clearInterval(timer)}; play();
     slider.addEventListener('mouseenter',stop); slider.addEventListener('mouseleave',play);
   }

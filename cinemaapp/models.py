@@ -103,7 +103,25 @@ class Watchlist(models.Model):
         db_table = t("watchlist")
         unique_together = (("user","content"),)
 
-# Вью с рейтингом
+class WatchHistory(models.Model):
+    id = models.UUIDField(primary_key=True)
+    user = models.ForeignKey(
+        CinemaUser, on_delete=models.CASCADE, db_column="user_id"
+    )
+    content = models.ForeignKey(
+        Content, on_delete=models.CASCADE, db_column="content_id"
+    )
+    episode = models.ForeignKey(
+        Episode, null=True, on_delete=models.CASCADE, db_column="episode_id"
+    )
+    watched_at = models.DateTimeField()
+    progress_sec = models.IntegerField()
+
+    class Meta:
+        managed = False
+        db_table = t("watch_history")
+        unique_together = (("user", "content", "episode"),)
+
 class VContentWithRating(models.Model):
     id = models.UUIDField(primary_key=True)
     title = models.TextField()
@@ -113,3 +131,17 @@ class VContentWithRating(models.Model):
     class Meta:
         managed = False
         db_table = t("v_content_with_rating")
+
+class ContentReview(models.Model):
+    id = models.UUIDField(primary_key=True)
+    user = models.ForeignKey("CinemaUser", on_delete=models.CASCADE, db_column="user_id")
+    content = models.ForeignKey("Content", on_delete=models.CASCADE, db_column="content_id")
+    rating = models.IntegerField()
+    comment = models.TextField(null=True)
+    created_at = models.DateTimeField()
+    updated_at = models.DateTimeField()
+
+    class Meta:
+        managed = False
+        db_table = t("content_reviews")
+        unique_together = (("user", "content"),)
