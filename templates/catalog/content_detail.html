@@ -4,111 +4,95 @@
 {% block head_title %}{{ content.title }}{% endblock %}
 
 {% block content %}
-<section class="content-detail">
-  <div class="info">
-    <h1 class="title">{{ content.title }}</h1>
 
-    <div class="meta-row">
-      {% if content.year %}<span class="year">{{ content.year }}</span>{% endif %}
-      <span class="avg" id="avgRating">{{ content.rating|default:"-" }}</span>
-
-      <!-- Рейтинг (0.5 шага) -->
-      <div id="ratingBar"
-           class="rating-bar"
-           data-content-id="{% url 'catalog:rate_content' content.id %}">
-        <div class="rating-bar__fill"></div>
-        {% for i in "0123456789" %}
-          <button type="button" class="rating-bar__step" aria-label="оценить"></button>
-        {% endfor %}
-      </div>
-    </div>
-
-    {% if content.description %}
-      <p class="desc">{{ content.description }}</p>
+  {% with bg_url=content.backdrop_url|default:content.poster_url %}
+    {% if bg_url %}
+      <div class="page-bg" style="--bg: url('{{ bg_url }}');"></div>
+    {% else %}
+      <div class="page-bg page-bg--empty"></div>
     {% endif %}
+  {% endwith %}
 
-    <div class="actions" style="margin-top:16px; display:flex; gap:10px;">
-      {% if content.trailer_url %}
-        <button id="openTrailer" class="btn">Трейлер</button>
-      {% endif %}
-      {% if not content.can_watch %}
-        <a id="ctaBtn" class="btn btn-primary" href="{{ content.cta_url }}">{{ content.cta_label }}</a>
-      {% endif %}
-    </div>
-  </div>
-  <div class="art">
-    {% if content.poster_url %}
-      <img id="poster" src="{{ content.poster_url }}" alt="{{ content.title }}">
-    {% endif %}
-  </div>
-</section>
+<div id="content-root" data-content-id="{{ content.id }}">
+  <section class="content-detail">
+    <div class="info">
+      <h1 class="title">{{ content.title }}</h1>
 
-<!-- Плеер (для фильма сразу грузится, если доступ есть) -->
-<section class="player-block">
-  {% if content.type == "movie" %}
-    <div style="width:100%;max-width:1000px;margin:0 auto;">
-      <!-- сюда JS вставит iframe (YouTube/RuTube) либо активирует <video> -->
-      <div id="moviePlayerBox" class="player-box">
-        <video id="moviePlayer" class="player" preload="metadata" controls style="display:none;"></video>
+      <div class="meta-row">
+        {% if content.year %}<span class="year">{{ content.year }}</span>{% endif %}
+        <span class="avg" id="avgRating">{{ content.rating|default:"-" }}</span>
       </div>
-    </div>
-  {% else %}
-    <div class="series-block" style="width:100%;max-width:1000px;margin:0 auto;">
 
-      <!-- ЕДИНАЯ ПАНЕЛЬ ВЫБОРА -->
-      <div id="seriesPanel" class="series-panel">
-        <div id="seasonsView">
-          <div class="panel-title">Сезоны</div>
-          <div id="seasonsGrid" class="seasons-grid">
-            {% for s in seasons %}
-              <button class="season-btn" data-sn="{{ s.season_num }}">Сезон {{ s.season_num }}</button>
-            {% endfor %}
+      {% if content.description %}
+        <p class="desc">{{ content.description }}</p>
+      {% endif %}
+
+      {% if genres %}
+        <div class="desc" class="genres-inline">Жанры: {{ genres|join:", " }}</div>
+      {% endif %}
+
+      <!-- Кнопки действий -->
+      <div class="controls-row" id="controlsRow" style="margin-top:16px; display:flex; gap:10px;">
+        <button id="openMainBtn" type="button" class="btn btn-primary btn-lg" style="display:none;">Смотреть</button>
+        {% if not content.can_watch and content.cta_url %}
+          <a id="ctaBtn" class="btn btn-primary" href="{{ content.cta_url }}">{{ content.cta_label }}</a>
+        {% endif %}
+        {% if user.is_authenticated %}
+          <button id="favBtn"
+                  class="btn btn-fav"
+                  data-post-url="{% url 'catalog:favorite_toggle' content.id %}"
+                  data-check-url="{% url 'catalog:favorite_status' content.id %}">
+            <span class="star" aria-hidden="true">☆</span>
+            <span class="label">Добавить в избранное</span>
+          </button>
+        {% else %}
+          <a class="btn btn-outline" href="{% url 'login' %}?next={{ request.path|urlencode }}">
+            ☆ Войти, чтобы добавить в избранное
+          </a>
+        {% endif %}
+      </div>
+
+      <!-- === МОДАЛЬНОЕ ОКНО ДЛЯ ТРЕЙЛЕРА === -->
+      <div id="trailerModal" class="modal">
+        <div class="modal__inner">
+          <div class="modal__header">
+            <div class="modal__title" id="trailerTitle">Трейлер</div>
+            <button class="modal__close" type="button" onclick="closeTrailer()">×</button>
           </div>
-        </div>
-
-        <div id="episodesView" class="hidden">
-          <div class="panel-title">Серии</div>
-          <div id="episodesList" class="episodes"></div>
-          <div style="margin-top:10px">
-            <button id="backToSeasons" class="btn">К сезонам</button>
+          <div class="modal__video">
+            <iframe id="trailerFrame" src="" allowfullscreen></iframe>
           </div>
         </div>
       </div>
 
-      <!-- Плеер -->
-      <div id="seriesPlayerBox" class="player-box">
-        <video id="seriesPlayer" class="player" preload="metadata" controls style="display:none;"></video>
-      </div>
-      
-      <!-- JSON-дерево сезонов для JS -->
-      {{ seasons|json_script:"seasons-data" }}
-    </div>
-  {% endif %}
-</section>
 
-<!-- Модалка для трейлера -->
-<div id="trailerModal" class="modal">
-  <div class="modal__backdrop"></div>
-  <div class="modal__dialog">
-    <button id="closeTrailer" class="modal__close" aria-label="Закрыть">×</button>
-    <div id="trailerContainer" style="aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden;"></div>
-  </div>
+      {% if it.genres %}<span class="hero-genres">{{ it.genres|join:", " }}</span>{% endif %}
+
+      <!-- Панель сезонов/серий: рендерится JS; для сериалов показывается, для фильмов скрыто -->
+      <div id="seriesPanel" class="card" style="margin-top:12px; display:none;">
+        <div class="card__header" style="display:flex;align-items:center;justify-content:space-between;">
+          <div class="card__title">Сезоны</div>
+          <button id="seriesBackBtn" class="btn" type="button" style="display:none;">Вернуться к сезонам</button>
+        </div>
+        <div class="card__body" id="seriesPanelBody"></div>
+      </div>
+    </div>
+
+    <div class="art">
+      {% if content.poster_url %}
+        <img id="coverImg" src="{{ content.poster_url }}" alt="{{ content.title }}">
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- Контейнер, куда JS при необходимости смонтирует iframe плеера -->
+  <section class="player-block">
+    <div class="player" id="playerContainer">
+      <iframe id="playerFrame" src="" frameborder="0" allowfullscreen style="display:none; width:100%; aspect-ratio:16/9;"></iframe>
+    </div>
+  </section>
 </div>
 
-<!-- Конфиг для JS -->
-<script>
-  window.CONTENT_CTX = {
-    id: "{{ content.id }}",
-    type: "{{ content.type }}",
-    canWatch: {{ content.can_watch|yesno:"true,false" }},
-    accessMode: "{{ content.access_mode }}",
-    ctaUrl: "{{ content.cta_url }}",
-    posterUrl: "{{ content.poster_url }}",
-    trailerUrl: "{{ content.trailer_url }}",
-    movieSourceUrl: "{% if content.type == 'movie' %}{% url 'catalog:movie_source' content.id %}{% endif %}",
-    episodeSourceTmpl: "{% if content.type == 'series' %}{% url 'catalog:episode_source' content.id 1 1 %}{% endif %}".replace('/1/1/', '/{sn}/{en}/')
-  };
-</script>
-<script src="{% static 'js/content_detail.js' %}"></script>
 <link rel="stylesheet" href="{% static 'css/content_detail.css' %}">
+<script src="{% static 'js/content_detail.js' %}"></script>
 {% endblock %}

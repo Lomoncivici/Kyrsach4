@@ -1,323 +1,572 @@
-/* ===== helpers ===== */
-function isYouTube(u){ return /(youtu\.be|youtube\.com)/i.test(u||''); }
-function isRutube(u){ return /rutube\.ru/i.test(u||''); }
+(() => {
 
-function mountIntoBox(hostOrBox, mediaEl){
-  const box = (typeof hostOrBox === 'string') ? document.getElementById(hostOrBox) : hostOrBox;
-  if (!box) return mediaEl;
-  // если передали старый <video>, берём его родителя .player-box
-  const container = box.classList?.contains('player-box')
-    ? box
-    : (box.parentElement?.classList?.contains('player-box') ? box.parentElement : box);
-  container.innerHTML = '';
-  container.appendChild(mediaEl);
-  return mediaEl;
-}
+  const root = document.getElementById('content-root');
+  if (!root) return;
 
-/* ===== Встраивание плееров ===== */
-function mountYouTubeIframe(urlOrId, hostOrBox){
-  const u = String(urlOrId || '');
-  const m = u.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([A-Za-z0-9_-]{6,})/);
-  const id = m ? m[1] : u;
+  const coverImg = document.getElementById('coverImg');
+  const openTrailerBtn = document.getElementById('openTrailerBtn');
+  const openMainBtn = document.getElementById('openMainBtn');
+  const playerFrame = document.getElementById('playerFrame');
+  const IS_AUTH = (typeof window !== 'undefined' && window.IS_AUTH === true);
+  const trailerUrl = root.dataset.trailerUrl || "";
+  const mainUrl = root.dataset.mainUrl || "";
+  const canWatch = root.dataset.canWatch === "1";
 
-  const src =
-    `https://www.youtube-nocookie.com/embed/${id}` +
-    `?playsinline=1&rel=0&modestbranding=1&autoplay=1&mute=0&origin=${encodeURIComponent(location.origin)}`;
+  if (!IS_AUTH) {
+    const bar = document.getElementById('ratingBar');
+    if (bar) bar.remove();
+    window.ratingInit = () => {};
+  }
 
-  const iframe = document.createElement('iframe');
-  iframe.src = src;
-  iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
-  iframe.referrerPolicy = 'strict-origin-when-cross-origin';
-  iframe.allowFullscreen = true;
-  Object.assign(iframe.style, { width:'100%', aspectRatio:'16/9', border:'0', borderRadius:'12px' });
+  // 1) Реальная пропорция постера → в CSS-переменную
+  function setPosterRatio(){
+    if (!coverImg) return;
+    if (coverImg.naturalWidth && coverImg.naturalHeight){
+      const ratio = coverImg.naturalWidth / coverImg.naturalHeight;
+      const art = coverImg.closest('.art');
+      if (art) art.style.setProperty('--img-ratio', ratio);
+    }
+  }
+  if (coverImg){
+    if (coverImg.complete) setPosterRatio();
+    coverImg.addEventListener('load', setPosterRatio);
+  }
 
-  return mountIntoBox(hostOrBox, iframe);
-}
+  // 2) Показать кнопку "Смотреть", если есть доступ/ссылка
+  if (canWatch && mainUrl){
+    openMainBtn.style.display = '';
+    openMainBtn.addEventListener('click', () => {
+      if (!playerFrame) return;
+      playerFrame.src = mainUrl;
+      playerFrame.style.display = 'block';
+      playerFrame.scrollIntoView({behavior:'smooth', block:'start'});
+    });
+  }
 
-function mountRutubeIframe(url, hostOrBox){
-  const u = String(url || '');
-  const m = u.match(/rutube\.ru\/(?:video|play\/embed)\/([a-f0-9]{32})/i);
-  const id = m ? m[1] : null;
-  const base = id ? `https://rutube.ru/play/embed/${id}` :
-              (u.includes('/play/embed/') ? u : u.replace('/video/','/play/embed/'));
-  const iframe = document.createElement('iframe');
-  iframe.src = base + (base.includes('?') ? '&' : '?') + 'autoplay=1';
-  iframe.allow = 'autoplay; fullscreen; picture-in-picture';
-  iframe.allowFullscreen = true;
-  Object.assign(iframe.style, { width:'100%', aspectRatio:'16/9', border:'0', borderRadius:'12px' });
+  // 3) Трейлер по кнопке
+  if (openTrailerBtn){
+    openTrailerBtn.addEventListener('click', () => {
+      if (!playerFrame) return;
+      if (!trailerUrl){
+        alert('Трейлер недоступен');
+        return;
+      }
+      playerFrame.src = trailerUrl;
+      playerFrame.style.display = 'block';
+      playerFrame.scrollIntoView({behavior:'smooth', block:'start'});
+    });
+  }
 
-  return mountIntoBox(hostOrBox, iframe);
-}
+  const $  = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
-function mountFileVideo(src, hostOrBox){
-  const v = document.createElement('video');
-  v.controls = true; v.autoplay = true; v.preload = 'metadata';
-  v.className = 'player';
-  Object.assign(v.style, { width:'100%', borderRadius:'12px', background:'#000' });
-  v.innerHTML = `<source src="${src}">`;
-  return mountIntoBox(hostOrBox, v);
-}
+  function getCookie(name){
+    const m = document.cookie.match('(^|;)\\s*'+name+'\\s*=\\s*([^;]+)');
+    return m ? m.pop() : '';
+  }
+  function toEmbed(u){
+    if(!u) return "";
+    const s = String(u);
+    const origin = encodeURIComponent(location.origin);
 
-function csrftoken(){
-  return document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
-}
+    // YouTube → embed (nocookie) + базовые параметры
+    if (s.includes("youtube.com/watch")) {
+      try{
+        const url = new URL(s);
+        const v = url.searchParams.get("v") || "";
+        if (!v) return s;
+        return `https://www.youtube-nocookie.com/embed/${v}?rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&fs=1&origin=${origin}`;
+      }catch{ return s; }
+    }
+    if (s.includes("youtu.be/")) {
+      const vid = s.split("/").pop();
+      return `https://www.youtube-nocookie.com/embed/${vid}?rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&fs=1&origin=${origin}`;
+    }
 
-/* ===== Рейтинг (0.5 шага) ===== */
-(function ratingInit(){
-  const bar = document.getElementById('ratingBar'); 
-  if (!bar) return;
+    // RuTube/прочее — как есть
+    return s;
+  }
+  function getContentId(){
+    if (window.ctx && (ctx.id || (window.ctx && window.ctx.id))) return String(window.ctx.id || ctx.id);
+    const host = $("#content-root,[data-content-id]"); if(host?.dataset?.contentId) return host.dataset.contentId;
+    const last = location.pathname.split("/").filter(Boolean).pop() || ""; return last.length >= 32 ? last : null;
+  }
 
-  const avgEl = document.getElementById('avgRating');
-  const fill  = bar.querySelector('.rating-bar__fill');
-  const steps = bar.querySelectorAll('.rating-bar__step');
-  const contentId = bar.dataset.contentId || bar.dataset.content_id; // ожидаем data-content-id
+  function getCSRF(){
+    const m = document.cookie.match(/csrftoken=([^;]+)/);
+    return m ? m[1] : '';
+  }
+  function setFavUI(btn, isFav){
+    btn.classList.toggle('is-fav', !!isFav);
+    btn.setAttribute('aria-pressed', !!isFav);
+    btn.textContent = (isFav ? '★ В избранном' : '☆ Добавить в избранное');
+  }
 
-  const setFillByHalf = (half)=> { fill.style.width = (half * 10) + '%'; };
-  const resetFill = ()=>{
-    const avg = parseFloat(String(avgEl.textContent || '0').replace(',', '.')) || 0;
-    setFillByHalf(Math.round(avg * 2));
-  };
-  resetFill();
+  async function apiJson(url, opts={}){
+    const resp = await fetch(url, { credentials: 'include', ...opts });
+    let data = {};
+    try{ data = await resp.json(); }catch{}
+    if(!resp.ok){ throw new Error(data.detail || data.reason || `HTTP ${resp.status}`); }
+    return data;
+  }
 
-  let busy = false;
+  // HIST: helper для записи прогресса/начала просмотра
+  async function postProgress(contentId, position=0, duration=null, sn=0, en=0, completed=false){
+    try{
+      await apiJson(`/api/v1/content/${contentId}/progress/`, {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ position, duration, sn, en, completed })
+      });
+    }catch(_e){ /* тихо */ }
+  }
 
-  steps.forEach((btn, i)=>{
-    const half = i + 1;
+  // --- DOM helpers ---
+  function ensurePlayerIframe(){
+    let iframe = $("#playerFrame");
+    if(iframe) return iframe;
+    // Попробуем найти контейнер .player или .player-block и смонтировать туда iframe
+    let host = $(".player") || $(".player-block") || $("#content-root") || document.body;
+    iframe = document.createElement("iframe");
+    iframe.id = "playerFrame";
+    iframe.setAttribute("frameborder","0"); iframe.setAttribute("allowfullscreen","");
+    iframe.setAttribute("allow", "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share");
+    iframe.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+    iframe.style.display = "none"; iframe.style.width="100%"; iframe.style.aspectRatio="16/9";
+    host.appendChild(iframe);
+    return iframe;
+  }
+  function ensureCover(){
+    let img = $("#coverImg");
+    if(img) return img;
+    const host = $(".player") || $(".art") || $("#content-root") || document.body;
+    img = document.createElement("img"); img.id = "coverImg"; img.style.maxWidth="100%";
+    host.appendChild(img); return img;
+  }
+  function ensureTrailerButton(){
+    let btn = $("#openTrailerBtn") || $$(".btn").find(b => /трейлер/i.test(b.textContent||""));
+    if(btn) return btn;
+    const host = $(".controls-row") || $(".info") || $("#content-root") || document.body;
+    btn = document.createElement("button"); btn.type="button"; btn.id="openTrailerBtn"; btn.className="btn"; btn.textContent="Трейлер";
+    host.appendChild(btn); return btn;
+  }
 
-    btn.addEventListener('mouseenter', ()=> { if (!busy) setFillByHalf(half); });
-    btn.addEventListener('mouseleave', ()=> { if (!busy) resetFill(); });
+  // --- панель сериалов
+  function mountSeriesPanelHost(){
+    const controls = document.querySelector('.controls-row') || document.querySelector('.info') || document.getElementById('content-root') || document.body;
+    let panel = document.getElementById('seriesPanel');
+    if(panel) { panel.style.display = ''; return panel; }
+    panel = document.createElement('div');
+    panel.id = 'seriesPanel';
+    panel.className = 'card';
+    panel.style.marginTop = '12px';
+    panel.innerHTML = `
+      <div class="card__header" style="display:flex;align-items:center;justify-content:space-between;">
+        <div class="card__title">Сезоны</div>
+        <button id="seriesBackBtn" class="btn" type="button" style="display:none;">Вернуться к сезонам</button>
+      </div>
+      <div class="card__body" id="seriesPanelBody"></div>
+    `;
+    panel.style.display = '';
+    const trailerBtn = document.getElementById('openTrailerBtn');
+    if(trailerBtn && trailerBtn.parentElement){
+      trailerBtn.parentElement.insertBefore(panel, trailerBtn.nextSibling);
+    }else{
+      controls.appendChild(panel);
+    }
+    return panel;
+  }
+  
+  function makeSeasonLabel(s, idx){
+    const num = Number(s.season_num ?? s.number ?? s.num ?? (idx + 1));
+    if (s.display_title && s.display_title.trim()) return s.display_title.trim();
+    if (s.title && String(s.title).trim()) return String(s.title).trim();
+    return `Сезон ${isFinite(num) && num > 0 ? num : (idx + 1)}`;
+  }
+  function getSeasonNumber(s, idx){
+    const n = Number(s.season_num ?? s.number ?? s.num ?? (idx + 1));
+    return isFinite(n) && n > 0 ? n : (idx + 1);
+  }
 
-    btn.addEventListener('click', async ()=>{
-      if (busy || !contentId) return;
-      busy = true; bar.classList.add('is-loading');
+  function renderSeasonsList(tree){
+    const body = document.getElementById('seriesPanelBody');
+    const back = document.getElementById('seriesBackBtn');
+    const titleEl = document.querySelector('#seriesPanel .card__title');
+    if(titleEl) titleEl.textContent = 'Сезоны';
+    if(!body) return;
+    back.style.display = 'none';
+    body.innerHTML = `<div class="season-list"></div>`;
+    const box = body.querySelector('.season-list');
+    tree.forEach((s, idx) => {
+      const b = document.createElement('button');
+      b.className = 'btn';
+      b.textContent = makeSeasonLabel(s, idx);
+      b.dataset.sn = String(getSeasonNumber(s, idx));
+      b.style.margin = '6px 8px 0 0';
+      box.appendChild(b);
+    });
+  }
 
-      const value = Math.round(half / 2);
+  function renderEpisodesList(tree, sn){
+    const season = tree.find(x => String(x.season_num ?? x.number ?? x.num) === String(sn));
+    const body = document.getElementById('seriesPanelBody');
+    const back = document.getElementById('seriesBackBtn');
+    const titleEl = document.querySelector('#seriesPanel .card__title');
+    if(titleEl) titleEl.textContent = 'Серии';
+    if(!season || !body) return;
+    back.style.display = '';
+    body.innerHTML = `<div class="episode-list" style="display:flex;flex-wrap:wrap;"></div>`;
+    const box = body.querySelector('.episode-list');
+    (season.episodes || []).forEach(e=>{
+      const b = document.createElement('button');
+      b.className = 'btn';
+      b.textContent = e.title || `Серия ${e.number}`;
+      b.dataset.sn = String(season.season_num ?? season.number ?? season.num ?? 1);
+      b.dataset.en = String(e.number);
+      b.style.margin = '6px 8px 0 0';
+      box.appendChild(b);
+    });
+  }
+
+  function ensureWatchButton(){
+    let btn = document.getElementById('openMainBtn')
+          || Array.from(document.querySelectorAll('.btn')).find(b => /смотреть/i.test(b.textContent||''));
+    if(btn){ btn.id = 'openMainBtn'; return btn; }
+    const host = document.querySelector('.controls-row') || document.querySelector('.info') || document.getElementById('content-root') || document.body;
+    btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'openMainBtn';
+    btn.className = 'btn';
+    btn.textContent = 'Смотреть';
+    host.appendChild(btn);
+    return btn;
+  }
+
+  function openMainPlayer(kind, url, contentId, contentType){
+    const origin = encodeURIComponent(location.origin);
+    let inner = '';
+    if (kind === 'youtube' || kind === 'rutube'){
+      const src = (toEmbed(url) + (url.includes('?') ? '&' : '?') + 'autoplay=1');
+      inner = `<iframe src="${src}" frameborder="0" allowfullscreen
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerpolicy="strict-origin-when-cross-origin"
+                style="width:100%;height:100%;display:block;"></iframe>`;
+    } else {
+      inner = `<video controls autoplay style="width:100%;height:100%;display:block;">
+                <source src="${url}">
+              </video>`;
+    }
+    const wrap = document.createElement('div');
+    wrap.className = 'overlay';
+    wrap.innerHTML = `
+      <div class="overlay__inner">
+        <div class="card">
+          <div class="card__header" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;">
+            <div class="card__title">${(typeof detail!=='undefined' && detail && detail.title) ? detail.title : 'Просмотр'}</div>
+            <button class="btn overlay__close" type="button" aria-label="Закрыть">×</button>
+          </div>
+          <div class="card__body" style="padding:0">
+            <div class="player" style="aspect-ratio:16/9;">${inner}</div>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(wrap);
+    const v = wrap.querySelector('video');
+    if(v){
+      let lastSent = 0;
+      const tick = () => {
+        const pos = Math.floor(v.currentTime || 0);
+        if(pos - lastSent >= 30){
+          lastSent = pos;
+          postProgress(
+            contentId,
+            pos,
+            isNaN(v.duration) ? null : Math.floor(v.duration),
+            (contentType === 'series' ? 1 : 0),
+            (contentType === 'series' ? 1 : 0),
+            false
+          );
+        }
+      };
+      v.addEventListener('timeupdate', tick);
+      v.addEventListener('ended', () => {
+        postProgress(
+          contentId,
+          Math.floor(v.duration || 0),
+          Math.floor(v.duration || 0),
+          (contentType === 'series' ? 1 : 0),
+          (contentType === 'series' ? 1 : 0),
+          true
+        );
+      });
+    }
+    const close = wrap.querySelector('.overlay__close');
+    const esc = (e)=>{ if(e.key==='Escape'){ wrap.remove(); document.removeEventListener('keydown', esc);} };
+    close.addEventListener('click', ()=>{ wrap.remove(); document.removeEventListener('keydown', esc); });
+    document.addEventListener('keydown', esc);
+  }
+
+  function ensureRatingBar(){
+    if (!IS_AUTH) return null;
+    let bar = $("#ratingBar");
+    if(!bar){
+      const host = $(".meta-row") || $(".info") || $("#content-root") || document.body;
+      bar = document.createElement("div"); bar.id="ratingBar"; bar.className="rating-bar"; bar.dataset.postUrl = "/api/v1/rating/legacy";
+      bar.innerHTML = `<div class="rating-bar__fill"></div><div class="rating-bar__steps"></div><span id="avgRating">-</span>`;
+      host.appendChild(bar);
+    }
+    const steps = $(".rating-bar__steps", bar);
+    if(steps && steps.children.length < 10){
+      steps.innerHTML = ""; for(let i=0;i<10;i++){ const s=document.createElement("span"); s.className="rating-bar__step"; s.dataset.half = (i+1); steps.appendChild(s); }
+    }
+    return bar;
+  }
+
+  function initRating(bar){
+    if (!bar) return;
+
+    const fill  = bar.querySelector('.rating-bar__fill');
+    const steps = bar.querySelectorAll('.rating-bar__step');
+    const avgEl = document.getElementById('avgRating');
+
+    const setFillByHalf = (half)=>{ if(fill) fill.style.width = (half*10)+'%'; };
+    const resetFill = ()=>{
+      const avg = parseFloat((avgEl?.textContent || '0').replace(',', '.')) || 0;
+      setFillByHalf(Math.round(avg*2));
+    };
+    resetFill();
+
+    steps.forEach((el, i) => {
+      const half = i + 1;
+      el.addEventListener('mouseenter', () => setFillByHalf(half));
+      el.addEventListener('mouseleave', resetFill);
+      el.addEventListener('click', async () => {
+        const value = Math.round(half/2);
+      });
+    });
+  }
+
+  async function ensureFavoriteButton(contentId){
+    const btn = document.getElementById('favBtn');
+    if (!btn) return;
+
+    try{
+      if (btn.dataset.checkUrl){
+        const res = await fetch(btn.dataset.checkUrl, { credentials:'same-origin' });
+        if (res.ok){
+          const data = await res.json();
+          if (typeof data.is_favorite === 'boolean'){
+            setFavUI(btn, data.is_favorite);
+          }
+        }
+      }
+    }catch{}
+
+    btn.addEventListener('click', async (e)=>{
+      e.preventDefault();
+      if (btn.disabled) return;
+      btn.disabled = true;
+
+      const wasFav = btn.classList.contains('is-fav');
+      setFavUI(btn, !wasFav);
 
       try{
-        const res = await fetch(`/api/v1/content/${contentId}/rate/`, {
+        const res = await fetch(btn.dataset.postUrl, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-CSRFToken': csrftoken(),
-            'X-Requested-With': 'fetch',
-          },
-          body: `value=${encodeURIComponent(value)}`
+          headers: { 'X-CSRFToken': getCSRF() },
+          credentials: 'same-origin'
         });
+        if (!res.ok){
+          setFavUI(btn, wasFav);
+          alert('Не удалось обновить избранное');
+        }
+      }catch{
+        setFavUI(btn, wasFav);
+        alert('Сеть недоступна');
+      }finally{
+        btn.disabled = false;
+      }
+    });
+  }
 
-        if (res.status === 401 || res.status === 403) {
-          // при необходимости — редирект на логин
-          location.href = `/accounts/login/?next=${encodeURIComponent(location.pathname + location.search)}`;
+  document.addEventListener('DOMContentLoaded', async () => {
+    const cid = getContentId(); 
+    if (!cid) return;
+
+    const iframe = ensurePlayerIframe();
+    const cover  = ensureCover();
+
+    const bar = ensureRatingBar();
+    initRating(bar);
+
+    ensureFavoriteButton(cid);
+
+    let ctype='movie', trailerUrl='', posterUrl='', isFree=false, detail=null;
+    try{
+      detail = await apiJson(`/api/v1/content/${cid}/`);
+      ctype = detail.type || 'movie';
+      trailerUrl = detail.trailer_url || '';
+      posterUrl = detail.poster_url || '';
+      isFree = !!detail.is_free;
+      if(posterUrl) cover.src = posterUrl;
+      let seriesTree = null;
+      let seriesAllowed = false;
+
+      const avgEl = document.getElementById('avgRating');
+
+      if (ctype === 'series') {
+        const watchBtn = document.getElementById('openMainBtn');
+        if (watchBtn) watchBtn.style.display = 'none';
+
+        seriesAllowed = !!isFree;
+        if (!seriesAllowed) {
+          try {
+            const cw = await apiJson(`/api/v1/content/${cid}/can_watch/`);
+            seriesAllowed = !!cw.can_watch;
+          } catch (_) { seriesAllowed = false; }
+        }
+
+        const panel = document.getElementById('seriesPanel') || mountSeriesPanelHost();
+
+        if (!seriesAllowed) {
+          if (panel) panel.style.display = 'none';
+        } else {
+          if (panel) panel.style.display = '';
+          const wbtn = document.getElementById('openMainBtn');
+          if (wbtn) wbtn.style.display = 'none';
+          try{
+            const t = await apiJson(`/api/v1/content/${cid}/series-tree/`);
+            if(t.ok){
+              seriesTree = t.seasons || [];
+              renderSeasonsList(seriesTree);
+            }
+          }catch{}
+        }
+      }
+
+      const bg = document.querySelector('.page-bg');
+      const bgUrl = detail.backdrop_url || detail.logo_wide_url || null;
+      if (bg && bgUrl){
+        bg.style.setProperty('--bg', `url('${bgUrl}')`);
+        bg.classList.remove('page-bg--empty');
+      }
+      
+      document.getElementById('seriesPanel')?.addEventListener('click', async (e)=>{
+        const el = e.target.closest('button');
+        if(!el) return;
+
+        if(el.id === 'seriesBackBtn'){
+          if(seriesTree) renderSeasonsList(seriesTree);
           return;
         }
-
-        const data = await res.json();
-        if (data?.ok) {
-          avgEl.textContent = Number(data.avg).toFixed(1).replace('.', ',');
-          resetFill();
+        if(el.dataset.sn && !el.dataset.en){
+          renderEpisodesList(seriesTree || [], el.dataset.sn);
+          return;
         }
-      } catch(e) {
-        // можно добавить показ ошибки пользователю
-      } finally {
-        busy = false; bar.classList.remove('is-loading');
-      }
-    });
-  });
-})();
+        if(el.dataset.sn && el.dataset.en){
+          if(!seriesAllowed){
+            alert('Контент доступен только после покупки или по подписке.');
+            return;
+          }
 
-/* ===== Трейлер (модалка) ===== */
-(function trailerModalInit(){
-  const ctx = window.CONTENT_CTX || {};
-  const url = ctx.trailerUrl;
-  const openBtn = document.getElementById('openTrailer');
-  const modal = document.getElementById('trailerModal');
-  const closeBtn = document.getElementById('closeTrailer');
-  const container = document.getElementById('trailerContainer');
-  if(!openBtn || !modal) return;
+          const sn = parseInt(el.dataset.sn, 10) || 1;
+          const en = parseInt(el.dataset.en, 10) || 1;
+          try{
+            const s  = await apiJson(`/api/v1/content/${cid}/episode-source/?sn=${sn}&en=${en}`);
+            if(s.ok && s.url){
+              await postProgress(cid, 0, null, sn, en, false);
+              openMainPlayer(s.kind, s.url, cid, 'series');
+            }else{
+              alert('Источник недоступен');
+            }
+          }catch{ alert('Источник недоступен'); }
+        }
+      });
+      if(avgEl && typeof detail.avg_rating !== 'undefined'){ avgEl.textContent = Number(detail.avg_rating||0).toFixed(1); }
+    }catch{}
 
-  function open(){
-    modal.classList.add('show');
-    const mountHost = container.appendChild(document.createElement('div'));
-    if(isYouTube(url))      mountYouTubeIframe(url, mountHost);
-    else if(isRutube(url))  mountRutubeIframe(url, mountHost);
-    else {
-      const vid=document.createElement('video');
-      vid.controls=true; vid.autoplay=true; vid.preload='metadata';
-      Object.assign(vid.style, {width:'100%', height:'100%'});
-      vid.innerHTML = `<source src="${url}">`;
-      container.innerHTML=''; container.appendChild(vid);
+    if(!isFree){
+      try{
+        const cw = await apiJson(`/api/v1/content/${cid}/can_watch/`);
+        if(cw.can_watch){
+          if(ctype === 'movie'){
+            const s = await apiJson(`/api/v1/content/${cid}/source/`);
+            if(s.ok && s.url){
+              iframe.src = (s.kind==='youtube'||s.kind==='rutube') ? toEmbed(s.url) : s.url;
+              iframe.style.display=''; cover.style.display='none';
+            }
+          }else{
+            try{
+              const s = await apiJson(`/api/v1/content/${cid}/episode-source/?sn=1&en=1`);
+              if(s.ok && s.url){
+                iframe.src = (s.kind==='youtube'||s.kind==='rutube') ? toEmbed(s.url) : s.url;
+                iframe.style.display=''; cover.style.display='none';
+              }
+            }catch{}
+          }
+        } else {
+          iframe.style.display='none'; cover.style.display='';
+        }
+      }catch{}
+    } else if (ctype !== 'series') {
+      const mainBtn = ensureWatchButton();
+      mainBtn.style.display = '';
+      mainBtn.addEventListener('click', async ()=>{
+        try{
+          let s;
+          if(ctype === 'movie'){
+            s = await apiJson(`/api/v1/content/${cid}/source/`);
+            await postProgress(cid, 0, null, 0, 0, false);
+          }else{
+            s = await apiJson(`/api/v1/content/${cid}/episode-source/?sn=1&en=1`);
+            await postProgress(cid, 0, null, 1, 1, false);
+          }
+          if(s.ok && s.url) openMainPlayer(s.kind, s.url, cid, ctype);
+          else alert('Источник недоступен');
+        }catch{ alert('Источник недоступен'); }
+      }, { once:true });
     }
-  }
-  function close(){ modal.classList.remove('show'); container.innerHTML=''; }
 
-  openBtn.addEventListener('click', open);
-  closeBtn.addEventListener('click', close);
-  modal.querySelector('.modal__backdrop')?.addEventListener('click', close);
-})();
+    const trailerBtn = ensureTrailerButton();
+    trailerBtn.addEventListener('click', () => {
+      let src = trailerUrl ? toEmbed(trailerUrl) : '';
+      if(!src && detail){ src = detail.trailer_url ? toEmbed(detail.trailer_url) : ''; }
+      if(!src){ alert('Трейлер недоступен'); return; }
 
-/* ===== Основной плеер (фильмы) ===== */
-(function movieAutoLoad(){
-  const ctx = window.CONTENT_CTX || {};
-  const boxId = 'moviePlayerBox';
-  if (ctx.type !== 'movie' || !ctx.canWatch) return;
+      src += (src.includes('?') ? '&' : '?') + 'autoplay=1';
 
-  (async ()=>{
-    try{
-      const data = await API.get(`/content/${ctx.id}/source/`);
-      if (!data.ok) return;
-      if (data.kind === 'youtube'){
-        const ifr = mountYouTubeIframe(data.url, boxId);
-        attachYouTubeProgress(ifr, {contentId: ctx.id});
-      } else if (data.kind === 'rutube'){
-        mountRutubeIframe(data.url, boxId); // прогресс для Rutube можно добавить позже
-      } else {
-        const v = mountFileVideo(data.url, boxId);
-        attachHtml5Progress(v, {contentId: ctx.id});
-      }
-    }catch(e){}
-  })();
-})();
+      const wrap = document.createElement('div');
+      wrap.className = 'overlay';
 
-/* ===== СЕРИАЛ: сезоны -> серии (панель остаётся на месте) ===== */
-(function seriesSelector(){
-  const panel = document.getElementById('seriesPanel');
-  if (!panel) return;
+      wrap.innerHTML = `
+        <div class="overlay__inner">
+          <div class="card">
+            <div class="card__header" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;">
+              <div class="card__title">${(detail && detail.title) ? detail.title : 'Трейлер'}</div>
+              <button class="btn overlay__close" type="button" aria-label="Закрыть">×</button>
+            </div>
+            <div class="card__body" style="padding:0">
+              <div class="player" style="aspect-ratio:16/9;">
+                <iframe src="${src}" frameborder="0" allowfullscreen
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        referrerpolicy="strict-origin-when-cross-origin"
+                        style="width:100%; height:100%; display:block;"></iframe>
+              </div>
+            </div>
+          </div>
+        </div>`;
 
-  // читаем JSON из <script id="seasons-data">
-  let raw = [];
-  try { raw = JSON.parse(document.getElementById('seasons-data')?.textContent || '[]'); } catch(_) {}
+      document.body.appendChild(wrap);
 
-  // нормализуем структуру ключей, т.к. в БД могут называться по-разному
-  const seasons = (Array.isArray(raw) ? raw : []).map((s, si) => {
-    const sn = Number(s.season_num ?? s.season ?? s.number ?? s.index ?? (si + 1));
-    const episodes = (s.episodes || []).map((e, ei) => ({
-      en: Number(e.episode_num ?? e.number ?? e.episode ?? e.index ?? (ei + 1)),
-      title: e.title ?? e.name ?? '',
-      video_url: e.video_url || ''
-    }));
-    return { sn, episodes };
-  });
-
-  const seasonsView  = panel.querySelector('#seasonsView');
-  const episodesView = panel.querySelector('#episodesView');
-  const seasonsGrid  = panel.querySelector('#seasonsGrid');
-  const episodesList = panel.querySelector('#episodesList');
-  const backBtn      = panel.querySelector('#backToSeasons');
-  const playerEl     = document.getElementById('seriesPlayer');
-  const ctx          = window.CONTENT_CTX || {};
-
-  if (!seasons.length) {
-    seasonsGrid.innerHTML = '<div style="opacity:.7">Нет данных по сезонам</div>';
-    return;
-  }
-
-  // перерисуем грид по нормализованным данным
-  seasonsGrid.innerHTML = seasons.map(s =>
-    `<button class="season-btn" data-sn="${s.sn}"
-       style="padding:10px 12px;border-radius:10px;border:1px solid #2a2f3a;background:#111522;color:#e6eaf0;">
-       Сезон ${s.sn}</button>`
-  ).join('');
-
-  backBtn.addEventListener('click', ()=>{
-    episodesView.classList.add('hidden');
-    seasonsView.classList.remove('hidden');
-  });
-
-  seasonsGrid.addEventListener('click', (e)=>{
-    const btn = e.target.closest('.season-btn'); if(!btn) return;
-    const sn  = Number(btn.dataset.sn);
-    const season = seasons.find(s => s.sn === sn);
-    if(!season) return;
-
-    episodesList.innerHTML = season.episodes.map(ep => `
-      <button class="episode-btn"
-              data-sn="${season.sn}"
-              data-en="${ep.en}"
-              ${ep.video_url ? `data-url="${ep.video_url}"` : ''}>
-        Серия ${ep.en} — ${ep.title}
-      </button>
-    `).join('');
-
-    seasonsView.classList.add('hidden');
-    episodesView.classList.remove('hidden');
-  });
-
-  episodesList.addEventListener('click', async (e)=>{
-  const btn = e.target.closest('.episode-btn'); if(!btn) return;
-  const sn  = btn.dataset.sn, en = btn.dataset.en;
-  try{
-    const data = await API.get(`/content/${ctx.id}/episode-source/?sn=${sn}&en=${en}`);
-    if (!data.ok) return;
-    if (data.kind === 'youtube'){
-      const ifr = mountYouTubeIframe(data.url, 'seriesPlayerBox');
-      attachYouTubeProgress(ifr, {contentId: ctx.id, sn, en});
-    } else if (data.kind === 'rutube'){
-      mountRutubeIframe(data.url, 'seriesPlayerBox');
-    } else {
-      const v = mountFileVideo(data.url, 'seriesPlayerBox');
-      attachHtml5Progress(v, {contentId: ctx.id, sn, en});
-    }
-  }catch(_){}
-});
-
-function csrftoken(){
-  return document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
-}
-const API = {
-  base: '/api/v1',
-  url(p){ return `${this.base}${p}`; },
-  async get(p){
-    const r = await fetch(this.url(p), { headers:{'X-Requested-With':'fetch'} });
-    if (!r.ok) throw new Error('API GET failed');
-    return r.json();
-  },
-  async postForm(p, data){
-    const body = new URLSearchParams(data);
-    const r = await fetch(this.url(p), {
-      method:'POST',
-      headers:{
-        'Content-Type':'application/x-www-form-urlencoded',
-        'X-CSRFToken': csrftoken(),
-        'X-Requested-With':'fetch'
-      },
-      body: body.toString()
+      const close = wrap.querySelector('.overlay__close');
+      const onClose = () => { wrap.remove(); document.removeEventListener('keydown', esc); };
+      const esc = (e) => { if(e.key === 'Escape') onClose(); };
+      close.addEventListener('click', onClose);
+      document.addEventListener('keydown', esc);
     });
-    if (!r.ok) throw new Error('API POST failed');
-    return r.json();
-  }
-};
-
-const ProgressAPI = {
-  url(id, sn=0, en=0){ return API.url(`/content/${id}/progress/?sn=${sn}&en=${en}`); },
-  async get(id, sn=0, en=0){
-    const r = await fetch(this.url(id,sn,en), { headers:{'X-Requested-With':'fetch'} });
-    if (!r.ok) return { position_sec:0 };
-    return r.json();
-  },
-  async post(id, {sn=0, en=0, position=0, duration=0, completed=false}){
-    return API.postForm(`/content/${id}/progress/`, {
-      sn, en,
-      position: Math.floor(position||0),
-      duration: duration==null ? '' : Math.floor(duration||0),
-      completed: completed ? '1' : '0'
-    });
-  }
-};
-
-(function purchaseInit(){
-  const ctx = window.CONTENT_CTX || {};
-  const btn = document.getElementById('buyBtn');
-  if (!btn) return;
-  btn.addEventListener('click', async ()=>{
-    try{
-      const res = await API.postForm(`/purchases/`, { content_id: ctx.id });
-      if (res.ok){
-        // после покупки просто перезагрузим страницу (canWatch станет true)
-        location.reload();
-      } else {
-        alert('Не удалось оформить покупку');
-      }
-    }catch(e){
-      alert('Ошибка покупки');
-    }
+    ensureFavoriteButton();
   });
 })();

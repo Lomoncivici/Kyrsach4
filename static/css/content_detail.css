@@ -1,13 +1,15 @@
 /* Лэйаут */
-.content-detail{display:grid;grid-template-columns:1fr 420px;gap:32px;align-items:start;margin:32px 16px}
+.content-detail{
+  max-width: min(1680px, 96vw);
+  margin-inline: auto;
+  padding-inline: clamp(16px, 2vw, 32px);
+}
 .content-detail .info{grid-column:1}
 .content-detail .art{grid-column:2}
 .title{font-size:48px;line-height:1.1;margin:0 0 8px}
 .meta-row{display:flex;align-items:center;gap:16px;color:#9aa4b2}
-.year{padding:.25rem .5rem;border:1px solid #2a2f3a;border-radius:10px}
+.year{font-weight:600; padding:.25rem .5rem;border:1px solid #2a2f3a; background:#1e2633; border-radius:10px}
 .desc{color:#c7ccd2;max-width:70ch;margin-top:10px}
-.art{position:relative;aspect-ratio:2/3;max-width:420px;border-radius:18px;overflow:hidden;background:#0f1117}
-.art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 
 /* Рейтинг */
 .avg{font-weight:700;background:#1e2633;padding:4px 8px;border-radius:8px}
@@ -47,3 +49,64 @@
   padding:10px 12px; border-radius:10px; border:1px solid #2a2f3a;
   background:#111522; color:#e6eaf0; cursor:pointer;
 }
+
+.hero{
+  --gap: max(24px, 3vw);
+  display: grid;
+  grid-template-columns: minmax(0,1fr) clamp(320px, 46vw, 980px);
+  gap: var(--gap);
+  align-items: start;
+  margin-block: 20px 0;
+}
+
+.hero__left, .hero__right{ min-width: 0; }
+.hero__right{
+  display:flex;
+  justify-content:end;
+  align-items:start;
+  margin-top: clamp(8px, 1.2vw, 24px);
+}
+
+.rating-bar{ position:relative; }
+.rating-bar__fill{ position:absolute; inset:0 auto 0 0; z-index:0; }
+.rating-bar__steps{ position:absolute; inset:0; display:grid; grid-template-columns:repeat(10,1fr); z-index:1; }
+.rating-bar__step{ cursor:pointer; }
+.overlay{ position:fixed; inset:0; background:rgba(0,0,0,.7); display:flex; align-items:center; justify-content:center; z-index:9999; }
+.overlay__inner{ position:relative; width:min(90vw,960px); aspect-ratio:16/9; }
+.overlay__inner iframe{ width:100%; height:100%; }
+.overlay__close{ position:absolute; right:.5rem; top:.25rem; font-size:2rem; line-height:1; background:transparent; border:0; color:#fff; cursor:pointer; }
+
+#seriesPanel .card__title{ font-weight:600; }
+#seriesPanel .season-list .btn,
+#seriesPanel .episode-list .btn{ margin-right:8px; margin-bottom:6px; }
+
+
+.art > img,
+.art > video,
+.art > iframe{
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  border: 0;
+}
+
+/* постер */
+.art img{
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+@media (min-width: 1800px){
+  .hero{
+    grid-template-columns: minmax(0,1fr) clamp(420px, 52vw, 1100px);
+  }
+}
+
+@media (max-width: 1100px){
+   .hero__right{ margin-top: 0; }
+}
+
+.btn.btn-outline{border:1px solid #404040;background:transparent}
+.btn.is-fav{border-color:#ffd54a;background:#332b00}

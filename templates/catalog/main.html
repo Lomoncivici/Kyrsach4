@@ -1,20 +1,54 @@
 {% extends 'base.html' %}
 {% block title %}Главная — Онлайн‑кинотеатр{% endblock %}
 {% block content %}
-<section class="hero">
-  <div class="hero__slider" data-autoplay>
-    {% for item in hero_items %}
-    <article class="hero__slide" style="background-image:url('{{ item.backdrop_url }}')">
-      <div class="hero__content">
-        <h2 class="hero__title">{{ item.title }}</h2>
-        <p class="hero__subtitle hero__subtitle--clamp">
-          {{ item.description }}
-        </p>
-        <div class="hero__actions">
-          <a class="btn hero__cta" href="{{ item.cta_href }}">{{ item.cta_label }}</a>
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/hero.css' %}">
+<script src="{% static 'js/hero.js' %}" defer></script>
+<link rel="stylesheet" href="{% static 'css/lane.css' %}">
+<script src="{% static 'js/lane.js' %}" defer></script>
+<section class="hero-wrap" style="padding-left: 25px; padding-right: 25px; margin-Top: -40px;">
+  <div class="hero-slider" id="heroSlider" data-autoplay="true" data-interval="6000">
+    
+    {% for it in hero_items %}
+      <article class="hero-slide {% if forloop.first %}is-active{% endif %}" data-index="{{ forloop.counter0 }}">
+        {% if it.backdrop_url %}
+          <img class="hero-img" src="{{ it.backdrop_url }}" alt="{{ it.title }}">
+        {% endif %}
+
+        <div class="hero-overlay">
+          <h2 class="hero-title">{{ it.title }}</h2>
+
+          <div class="hero-meta">
+            <span class="hero-rating">★ {{ it.rating|floatformat:1 }}</span>
+            <span class="hero-year">{{ it.year }}</span>
+            {% if it.genres %}<span class="hero-genres">{{ it.genres|join:", " }}</span>{% endif %}
+          </div>
+
+          <p id="desc-{{ forloop.counter0 }}" class="hero-desc">
+            {% if it.desc_long %}{{ it.desc_short }}{% else %}{{ it.desc_full }}{% endif %}
+          </p>
+
+          {% if it.desc_long %}
+            <button class="hero-more"
+                    data-target="desc-{{ forloop.counter0 }}"
+                    data-full="{{ it.desc_full|escape }}"
+                    data-short="{{ it.desc_short|escape }}">
+              Раскрыть
+            </button>
+          {% endif %}
+
+          <a href="{{ it.cta_href }}" class="hero-cta">{{ it.cta_label }}</a>
         </div>
-      </div>
-    </article>
+      </article>
+    {% endfor %}
+  </div>
+
+  <div class="hero-dots" id="heroDots">
+    {% for it in hero_items %}
+      <button class="hero-dot {% if forloop.first %}is-active{% endif %}"
+              data-index="{{ forloop.counter0 }}"
+              aria-label="Показать слайд {{ forloop.counter }}">
+      </button>
     {% endfor %}
   </div>
 </section>
@@ -27,8 +61,10 @@
   {% include '_partials/section_row.html' with title='Вы хотели посмотреть' items=watchlist %}
 {% endif %}
 
-{% include '_partials/section_row.html' with title='Аниме' items=anime %}
 {% include '_partials/section_row.html' with title='Сериалы' items=series %}
 {% include '_partials/section_row.html' with title='Фильмы' items=movies %}
-{% include '_partials/section_row.html' with title='Мультфильмы' items=cartoons %}
+{% for sec in genre_sections %}
+  {% include '_partials/section_row.html' with title=sec.title items=sec.items %}
+{% endfor %}
 {% endblock %}
+

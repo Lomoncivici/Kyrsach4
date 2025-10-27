@@ -19,7 +19,7 @@ from .permissions import IsAdmin, IsSupport, IsFinance, ReadOnly
 class ContentViewSet(mixins.ListModelMixin,
                      mixins.RetrieveModelMixin,
                      viewsets.GenericViewSet):
-    queryset = Content.objects.select_related("cover_image", "trailer", "video").all()
+    queryset = Content.objects.select_related("cover_image_wide", "cover_image", "trailer", "video").all()
     serializer_class = ContentSerializer
     permission_classes = [AllowAny]
 
@@ -52,7 +52,7 @@ class ContentViewSet(mixins.ListModelMixin,
             en = request.query_params.get("en", 0)
             data = services.get_progress(request.user, pk, sn, en)
             return Response({"ok": True, **data})
-        # POST
+
         ser = ProgressPostSerializer(data=request.data); ser.is_valid(raise_exception=True)
         v = ser.validated_data
         services.save_progress(
@@ -76,19 +76,37 @@ class ContentViewSet(mixins.ListModelMixin,
 
         return Response({"ok": False, "reason": "provide sn/en"}, status=400)
 
-    @action(detail=True, methods=["get"], url_path=r"episode-source", permission_classes=[IsAuthenticated])
+    @action(detail=True, methods=["get"], url_path="episode-source", permission_classes=[AllowAny])
     def episode_source(self, request, pk=None):
-        sn = request.query_params.get("sn")
-        en = request.query_params.get("en")
-        if not sn or not en:
-            return Response({"ok": False, "reason": "sn/en required"}, status=400)
-
         c = self.get_object()
-        if not services.can_watch(request.user, c) and not c.is_free:
-            return Response({"ok": False, "reason": "forbidden"}, status=403)
-        data = services.episode_source(c, int(sn), int(en))  # добавь у себя этот метод если нужно
-        return Response({"ok": True, **data})
+        sn = request.query_params.get("sn") or request.query_params.get("season") or "1"
+        en = request.query_params.get("en") or request.query_params.get("episode") or "1"
+        def _to_int(val, default=1):
+            try:
+                return int(val)
+            except (TypeError, ValueError):
+                return default
 
+        sn_i = _to_int(sn, 1)
+        en_i = _to_int(en, 1)
+
+        # запрет: сериал доступен только если бесплатный или есть доступ (покупка/подписка)
+        if not (c.is_free or services.can_watch(request.user, c)):
+            return Response({"ok": False, "detail": "forbidden"}, status=403)
+
+        data = services.episode_source(c, sn_i, en_i)
+        status_code = 200 if data.get("ok") else 404
+        return Response(data, status=status_code)
+    
+    @action(detail=True, methods=["get"], url_path="series-tree", permission_classes=[AllowAny])
+    def series_tree(self, request, pk=None):
+        """
+        Вернёт дерево сезонов/эпизодов для сериалов.
+        Формат: {"ok": True, "seasons":[{"number":1,"title":"Сезон 1","episodes":[{"number":1,"title":"Серия 1"}, ...]}]}
+        """
+        c = self.get_object()
+        data = services.series_tree(c)
+        return Response({"ok": True, "seasons": data})
 
 # ---------- Покупки ----------
 class PurchaseViewSet(mixins.ListModelMixin,

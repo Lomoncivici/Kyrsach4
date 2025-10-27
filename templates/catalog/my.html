@@ -4,20 +4,49 @@
 {% block head_title %}Моё{% endblock %}
 
 {% block content %}
-<section class="container" style="max-width:1100px;margin:0 auto;">
+<section class="container" style="margin:0 60px;">
   <h1 style="margin:10px 0 20px;">Моё</h1>
 
   <div class="my-section">
     <h2>Покупки</h2>
     {% if purchases %}
-      <div class="cards">
-        {% for p in purchases %}
-          <a class="card" href="{{ p.url }}">
-            {% if p.poster_url %}<img src="{{ p.poster_url }}" alt="">{{% endif %}
-            <div class="card-title">{{ p.title }}</div>
-            {% if p.when %}<div class="card-meta">Куплено: {{ p.when|date:"d.m.Y H:i" }}</div>{% endif %}
-          </a>
-        {% endfor %}
+      <div class="lane" data-page-size="4">
+        <button type="button" class="btn lane-nav lane-prev" aria-label="Назад">‹</button>
+        <div class="lane-viewport">
+          <div class="lane-track">
+            {% for p in purchases %}
+              <a class="card" href="{{ p.url }}">
+                {% if p.poster_url %}<img src="{{ p.poster_url }}" alt="">{% endif %}
+                <div class="card-title">{{ p.title }}</div>
+                {% if p.when %}<div class="card-meta">Куплено: {{ p.when|date:"d.m.Y H:i" }}</div>{% endif %}
+              </a>
+            {% endfor %}
+          </div>
+        </div>
+        <button type="button" class="btn lane-nav lane-next" aria-label="Вперёд">›</button>
+      </div>
+    {% else %}
+      <div class="empty">Пока пусто.</div>
+    {% endif %}
+  </div>
+
+  <div class="my-section">
+    <h2>Избранное</h2>
+    {% if favorites %}
+      <div class="lane" data-page-size="4">
+        <button type="button" class="btn lane-nav lane-prev" aria-label="Назад">‹</button>
+        <div class="lane-viewport">
+          <div class="lane-track">
+            {% for f in favorites %}
+              <a class="card" href="{{ f.url }}">
+                {% if f.poster_url %}<img src="{{ f.poster_url }}" alt="">{% endif %}
+                <div class="card-title">{{ f.title }}</div>
+                {% if f.when %}<div class="card-meta">Добавлено: {{ f.when|date:"d.m.Y H:i" }}</div>{% endif %}
+              </a>
+            {% endfor %}
+          </div>
+        </div>
+        <button type="button" class="btn lane-nav lane-next" aria-label="Вперёд">›</button>
       </div>
     {% else %}
       <div class="empty">Пока пусто.</div>
@@ -27,14 +56,20 @@
   <div class="my-section">
     <h2>История просмотра</h2>
     {% if history %}
-      <div class="cards">
-        {% for h in history %}
-          <a class="card" href="{{ h.url }}">
-            {% if h.poster_url %}<img src="{{ h.poster_url }}" alt="">{{% endif %}
-            <div class="card-title">{{ h.title }}</div>
-            {% if h.when %}<div class="card-meta">Просмотрено: {{ h.when|date:"d.m.Y H:i" }}</div>{% endif %}
-          </a>
-        {% endfor %}
+      <div class="lane" data-page-size="4">
+        <button type="button" class="btn lane-nav lane-prev" aria-label="Назад">‹</button>
+        <div class="lane-viewport">
+          <div class="lane-track">
+            {% for h in history %}
+              <a class="card" href="{{ h.url }}">
+                {% if h.poster_url %}<img src="{{ h.poster_url }}" alt="">{% endif %}
+                <div class="card-title">{{ h.title }}</div>
+                {% if h.when %}<div class="card-meta">Просмотрено: {{ h.when|date:"d.m.Y H:i" }}</div>{% endif %}
+              </a>
+            {% endfor %}
+          </div>
+        </div>
+        <button type="button" class="btn lane-nav lane-next" aria-label="Вперёд">›</button>
       </div>
     {% else %}
       <div class="empty">Записей пока нет.</div>
@@ -44,14 +79,20 @@
   <div class="my-section">
     <h2>Мои оценки</h2>
     {% if ratings %}
-      <div class="cards">
-        {% for r in ratings %}
-          <a class="card" href="{{ r.url }}">
-            {% if r.poster_url %}<img src="{{ r.poster_url }}" alt="">{{% endif %}
-            <div class="card-title">{{ r.title }}</div>
-            <div class="card-meta">Оценка: {{ r.rating }} / 5{% if r.when %} • {{ r.when|date:"d.m.Y H:i" }}{% endif %}</div>
-          </a>
-        {% endfor %}
+      <div class="lane" data-page-size="4">
+        <button type="button" class="btn lane-nav lane-prev" aria-label="Назад">‹</button>
+        <div class="lane-viewport">
+          <div class="lane-track">
+            {% for r in ratings %}
+              <a class="card" href="{{ r.url }}">
+                {% if r.poster_url %}<img src="{{ r.poster_url }}" alt="">{% endif %}
+                <div class="card-title">{{ r.title }}</div>
+                <div class="card-meta">Оценка: {{ r.rating }} / 5{% if r.when %} • {{ r.when|date:"d.m.Y H:i" }}{% endif %}</div>
+              </a>
+            {% endfor %}
+          </div>
+        </div>
+        <button type="button" class="btn lane-nav lane-next" aria-label="Вперёд">›</button>
       </div>
     {% else %}
       <div class="empty">Вы ещё ничего не оценивали.</div>
@@ -60,4 +101,6 @@
 </section>
 
 <link rel="stylesheet" href="{% static 'css/my.css' %}">
+<link rel="stylesheet" href="{% static 'css/lane.css' %}">
+<script src="{% static 'js/lane.js' %}"></script>
 {% endblock %}

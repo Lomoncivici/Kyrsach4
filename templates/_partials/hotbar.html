@@ -1,37 +1,51 @@
 <header id="hotbar" class="hotbar">
-  <div class="hotbar__left">
-    <a href="/" class="logo">КИНОВЕЧЕР</a>
-  </div>
-  <nav class="hotbar__nav">
+  <div class="hotbar__inner">
+    <!-- ЛЕВО -->
+    <div class="hotbar__left">
+      <a href="/" class="logo">КИНОВЕЧЕР</a>
+    </div>
 
-  {% if user.is_authenticated %}
-    <a href="{% url 'catalog:my_page' %}" class="nav-link">Моё</a>
-    <a href="/subscriptions" class="nav-link">Подписки</a>
-  {% else %}
-    <a href="/login" class="nav-link">Моё</a>
-    <a href="/login" class="nav-link">Подписки</a>
-  {% endif %}
+    <!-- ЦЕНТР -->
+    <div class="hotbar__center">
+      <nav class="hotbar__nav">
+        {% if user.is_authenticated %}
+          <a href="{% url 'catalog:my_page' %}" class="nav-link">Моё</a>
+          <a href="/subscriptions" class="nav-link">Подписки</a>
+        {% else %}
+          <a href="/login" class="nav-link">Моё</a>
+          <a href="/login" class="nav-link">Подписки</a>
+        {% endif %}
+      </nav>
 
-  <a href="/channels" class="nav-link">Каналы</a>
-  <a href="/sport" class="nav-link">Спорт</a>
-</nav>
-  <div class="hotbar__right">
-    <form action="/search" method="get" class="search">
-      <input name="q" type="search" placeholder="Поиск" />
-    </form>
-    {% if request.user.is_authenticated %}
-  <div class="user-menu">
-    <a class="avatar" href="profile/" title="Аккаунт">{{ request.user.username|first|upper }}</a>
-    <div class="user-menu__dropdown">
-      <a class="menu-item" href="profile/">Профиль</a>
-      <form action="/logout/" method="post">
-        {% csrf_token %}
-        <button type="submit" class="menu-item as-button">Выйти</button>
+      <form class="hotbar__search" action="/search" method="get" role="search">
+        <input type="search" name="q" placeholder="Поиск" value="{{ request.GET.q|default:'' }}">
+        <button class="hotbar__search-btn" aria-label="Найти" type="submit">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+            <path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
       </form>
     </div>
-  </div>
-  {% else %}
-    <a class="btn" href="/login">Войти</a>
-  {% endif %}
+
+    <!-- ПРАВО -->
+    <div class="hotbar__right">
+      {% if request.user.is_authenticated %}
+        <div class="user-menu">
+          <a class="avatar" href="{% url 'profile' %}" title="Аккаунт">
+            {{ request.user.username|first|upper }}
+          </a>
+          <div class="user-menu__dropdown">
+            <a class="menu-item" href="{% url 'profile' %}">Профиль</a>
+            <form action="/logout/" method="post">
+              {% csrf_token %}
+              <button type="submit" class="menu-item as-button">Выйти</button>
+            </form>
+          </div>
+        </div>
+      {% else %}
+        <a class="btn" href="/login">Войти</a>
+      {% endif %}
+    </div>
   </div>
 </header>

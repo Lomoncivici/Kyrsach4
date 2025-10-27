@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 
 def t(name: str) -> str:
     return f'"cinema"."{name}"'
@@ -22,10 +23,17 @@ class Content(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     cover_image = models.ForeignKey(MediaAsset, null=True, on_delete=models.SET_NULL,
                                     db_column="cover_image_id", related_name="as_cover_for")
+    cover_image_wide = models.ForeignKey(
+        MediaAsset, null=True, on_delete=models.SET_NULL,
+        db_column="cover_image_wide_id", related_name="as_wide_cover_for"
+    )
     trailer = models.ForeignKey(MediaAsset, null=True, on_delete=models.SET_NULL,
                                 db_column="trailer_id", related_name="as_trailer_for")
     video = models.ForeignKey(MediaAsset, null=True, on_delete=models.SET_NULL,
                               db_column="video_id", related_name="as_video_for")
+    
+    created_at = models.DateTimeField(db_column='created_at')
+    updated_at = models.DateTimeField(db_column='updated_at')
     class Meta:
         managed = False
         db_table = t("content")
@@ -52,7 +60,7 @@ class ContentGenre(models.Model):
 class Season(models.Model):
     id = models.UUIDField(primary_key=True)
     content = models.ForeignKey(Content, on_delete=models.CASCADE, db_column="content_id")
-    season_num = models.IntegerField()
+    season_num = models.IntegerField(db_column='season_num')
     class Meta:
         managed = False
         db_table = t("seasons")
@@ -78,6 +86,14 @@ class CinemaUser(models.Model):
         db_table = t("users")
 
 class Favorite(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='favorites')
+    content = models.ForeignKey('catalog.Content', on_delete=models.CASCADE, related_name='favorited_by')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ('user', 'content')
+        indexes = [models.Index(fields=['user', 'content'])]
+    
     user = models.ForeignKey(
         CinemaUser, on_delete=models.DO_NOTHING, db_column="user_id", primary_key=True
     )

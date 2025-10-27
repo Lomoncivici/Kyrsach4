@@ -1,0 +1,18 @@
+.lane { position: relative; }
+.lane .card { flex: 0 0 auto; }
+.lane-nav {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  z-index: 2; opacity: .95;
+}
+.lane-prev { left: -8px; }
+.lane-next { right: -8px; }
+
+@media (max-width: 640px){
+  .lane-prev { left: -4px; }
+  .lane-next { right: -4px; }
+}
+
+.lane-viewport{overflow:hidden}
+.lane-track{display:flex;gap:16px}
+.lane .card-tile{flex:0 0 auto;width:180px}
+.lane .card-tile img{width:100%;height:260px;object-fit:cover;display:block}

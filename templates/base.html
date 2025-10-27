@@ -1,4 +1,11 @@
+<script>
+  window.IS_AUTH = {{ request.user.is_authenticated|yesno:"true,false" }};
+</script>
 {% load static %}
+{% load static %}
+{% block page_bg %}
+  <div class="page-bg" style="--bg: url('{% static "img/BackFon.png" %}');"></div>
+{% endblock %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
