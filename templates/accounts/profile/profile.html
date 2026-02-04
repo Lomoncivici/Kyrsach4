@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Мой аккаунт — Онлайн-кинотеатр{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/profile.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="profile">
+  <h1>Профиль</h1>
+
+  {% if messages %}
+    <div class="messages">
+      {% for m in messages %}
+        <div class="alert {% if m.tags %}alert-{{ m.tags }}{% endif %}">{{ m }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="grid">
+    <div class="panel">
+      <h2>Учётные данные</h2>
+
+      <form method="post" action="">
+        {% csrf_token %}
+
+        <div class="field {% if field_errors.username %}has-error{% endif %}">
+          <label>Логин</label>
+          <input type="text"
+                 name="username"
+                 value="{{ form_username|default:user.username }}"
+                 required
+                 pattern="[A-Za-z0-9._-]{5,32}"
+                 title="5–32 символов: латиница, цифры, . _ -">
+          {% if field_errors.username %}<div class="error">{{ field_errors.username }}</div>{% endif %}
+        </div>
+
+        <div class="field {% if field_errors.email %}has-error{% endif %}">
+          <label>Почта</label>
+          <input type="email"
+                 name="email"
+                 value="{{ form_email|default:user.email }}"
+                 required>
+          {% if field_errors.email %}<div class="error">{{ field_errors.email }}</div>{% endif %}
+        </div>
+
+        <div class="field {% if field_errors.phone %}has-error{% endif %}">
+          <label>Телефон</label>
+          <input type="text"
+                 name="phone"
+                 value="{{ form_phone|default:user.profile.phone }}"
+                 pattern="^\+?\d{10,15}$"
+                 title="+79991234567 (10–15 цифр)">
+          {% if field_errors.phone %}<div class="error">{{ field_errors.phone }}</div>{% endif %}
+        </div>
+
+        <button class="btn btn-primary" type="submit">Сохранить</button>
+      </form>
+    </div>
+
+    <div class="panel subscription-panel">
+        <h2>Подписка</h2>
+
+        {% with sub=subscription %}
+            {% if sub %}
+                {% now "Y-m-d H:i:s" as current_time %}
+                
+                {% if sub.is_actually_active_now %}
+                    <div class="subscription-status active">
+                        <p><strong>Активна: {{ sub.plan.name }}</strong></p>
+                        <p>Тариф: {{ sub.plan.name }}</p>
+                        <p>Начало: {{ sub.started_at|date:"d.m.Y" }}</p>
+                        
+                        {% if sub.expires_at %}
+                            <p>Окончание: {{ sub.expires_at|date:"d.m.Y H:i" }}</p>
+                            <p>Осталось дней: {{ sub.days_left }}</p>
+                        {% else %}
+                            <p>Бессрочная подписка</p>
+                        {% endif %}
+                        
+                        <p>Статус: <span class="badge bg-success">Активна</span></p>
+
+                        <div class="btn-row mt-3">
+                            <a class="btn btn-primary" href="{% url 'catalog:subscribe' %}">Управление</a>
+                            {% if sub.can_be_cancelled %}
+                                <form method="post" action="{% url 'catalog:cancel_subscription' %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="subscription_id" value="{{ sub.id }}">
+                                    <button type="submit" class="btn btn-outline-danger" 
+                                            onclick="return confirm('Вы уверены, что хотите отменить подписку?')">
+                                        Отменить подписку
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                
+                {% elif sub.status == 'active' and sub.started_at > now %}
+                    <div class="subscription-status future">
+                        <p><strong>Будущая подписка</strong></p>
+                        <p>Тариф: {{ sub.plan.name }}</p>
+                        <p>Начнётся: {{ sub.started_at|date:"d.m.Y H:i" }}</p>
+                        <p>Окончание: {{ sub.expires_at|date:"d.m.Y H:i" }}</p>
+                        <p>Статус: <span class="badge bg-warning">Начинается через {{ sub.started_at|timeuntil }}</span></p>
+                    </div>
+                
+                {% else %}
+                    <div class="subscription-status inactive">
+                        <p><strong>Подписка не активна</strong></p>
+                        <p>Тариф: {{ sub.plan.name }}</p>
+                        
+                        {% if sub.expires_at %}
+                            <p>Действовала до: {{ sub.expires_at|date:'d.m.Y H:i' }}</p>
+                        {% endif %}
+                        
+                        {% if sub.status %}
+                            <p>Последний статус был: 
+                                {% if sub.status == 'active' %}
+                                    Активна
+                                {% elif sub.status == 'cancelled' %}
+                                    <span class="badge bg-secondary">Отменена</span>
+                                {% elif sub.status == 'expired' %}
+                                    <span class="badge bg-danger">Истекла</span>
+                                {% else %}
+                                    {{ sub.status }}
+                                {% endif %}
+                            </p>
+                        {% endif %}
+
+                        <div class="btn-row mt-3">
+                            <a class="btn btn-primary" href="{% url 'catalog:subscribe' %}">Оформить подписку</a>
+                        </div>
+                    </div>
+                {% endif %}
+
+            {% else %}
+                <div class="subscription-status inactive">
+                    <p>У вас нет активной подписки</p>
+                    <div class="btn-row" style="margin-top: 0.8rem;">
+                        <a class="btn btn-primary" href="{% url 'catalog:subscribe' %}">Оформить подписку</a>
+                    </div>
+                </div>
+            {% endif %}
+        {% endwith %}
+      </div>
+
+      <div class="panel">
+        <h2>Безопасность</h2>
+        
+        <div class="field">
+          <label>Управление паролем</label>
+          <div class="btn-group-vertical w-100">
+            <a class="btn btn-primary" href="{% url 'password_change' %}"> Изменить пароль</a>
+            <a class="btn btn-primary" href="{% url 'password_reset_request' %}">Забыли пароль?</a>
+          </div>
+        </div>
+        
+        <div class="field">
+          <label>Удаление аккаунта</label>
+          <div class="btn-group-vertical w-100">
+            <p class="muted small mb-2">Это действие нельзя отменить. Все данные будут удалены.</p>
+            <a class="btn btn-primary" href="{% url 'account_delete_request' %}">Удалить аккаунт</a>
+          </div>
+        </div>
+      </div>
+  </div>
+</section>
+{% endblock %}

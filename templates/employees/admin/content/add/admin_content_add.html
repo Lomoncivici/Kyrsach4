@@ -1,0 +1,149 @@
+{% extends 'employees/admin/admin_base.html' %}
+
+{% block title %}Добавить контент - Управление контентом{% endblock %}
+{% block page_title %}➕ Добавить новый контент{% endblock %}
+
+{% block content %}
+<div class="content-box">
+    <h2>Добавление нового контента</h2>
+    
+    {% if messages %}
+    <div class="alert alert-info">
+        {% for message in messages %}
+        {{ message }}
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <form method="post" style="max-width: 800px;">
+        {% csrf_token %}
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="title">Название *</label>
+                <input type="text" id="title" name="title" required placeholder="Название фильма или сериала">
+            </div>
+            
+            <div class="form-group">
+                <label for="type">Тип контента *</label>
+                <select id="type" name="type" required onchange="toggleVideoField()">
+                    <option value="">Выберите тип</option>
+                    <option value="movie">Фильм</option>
+                    <option value="series">Сериал</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="release_year">Год выпуска *</label>
+                <input type="number" id="release_year" name="release_year" required min="1900" max="2030" value="2024">
+            </div>
+            
+            <div class="form-group">
+                <label for="price">Цена (₽)</label>
+                <input type="number" id="price" name="price" min="0" step="0.01" placeholder="0.00" value="0">
+                <div style="font-size: 12px; color: #718096; margin-top: 5px;">
+                    Укажите 0 для бесплатного контента
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="description">Описание *</label>
+            <textarea id="description" name="description" required placeholder="Описание контента..."></textarea>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group" id="video_field" style="display: none;">
+                <label for="video_url">URL видео (только для фильмов)</label>
+                <input type="text" id="video_url" name="video_url" placeholder="https://example.com/video.mp4">
+                <div style="font-size: 12px; color: #718096;">
+                    Обязательно для фильмов. Форматы: MP4, WebM, HLS, DASH
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="cover_image_url">URL постера</label>
+                <input type="text" id="cover_image_url" name="cover_image_url" placeholder="https://example.com/poster.jpg">
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="trailer_url">URL трейлера</label>
+                <input type="text" id="trailer_url" name="trailer_url" placeholder="https://example.com/trailer.mp4">
+            </div>
+            
+            <div class="form-group">
+                <label for="cover_image_wide_url">URL широкого постера</label>
+                <input type="text" id="cover_image_wide_url" name="cover_image_wide_url" placeholder="https://example.com/wide-poster.jpg">
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>Жанры</label>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px;">
+                {% for genre in genres %}
+                <label class="checkbox-group">
+                    <input type="checkbox" name="genres" value="{{ genre.0 }}">
+                    <span>{{ genre.1 }}</span>
+                </label>
+                {% empty %}
+                <p style="color: #718096;">Жанры не найдены. Сначала добавьте жанры в разделе "Жанры"</p>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label class="checkbox-group">
+                <input type="checkbox" id="is_free" name="is_free">
+                <span>Бесплатный контент</span>
+            </label>
+        </div>
+        
+        <div class="form-group">
+            <button type="submit" class="btn btn-success">Создать контент</button>
+            <a href="{% url 'admin_content_list' %}" class="btn" style="background: #a0aec0; margin-left: 10px;">Отмена</a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const priceInput = document.getElementById('price');
+    const freeCheckbox = document.getElementById('is_free');
+    
+    freeCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            priceInput.value = '0';
+            priceInput.disabled = true;
+        } else {
+            priceInput.disabled = false;
+        }
+    });
+    
+    priceInput.addEventListener('input', function() {
+        if (this.value === '0' || this.value === '') {
+            freeCheckbox.checked = true;
+            freeCheckbox.disabled = false;
+        } else {
+            freeCheckbox.checked = false;
+        }
+    });
+});
+
+function toggleVideoField() {
+    const typeSelect = document.getElementById('type');
+    const videoField = document.getElementById('video_field');
+    
+    if (typeSelect.value === 'movie') {
+        videoField.style.display = 'block';
+        document.getElementById('video_url').required = true;
+    } else {
+        videoField.style.display = 'none';
+        document.getElementById('video_url').required = false;
+    }
+}
+</script>
+{% endblock %}

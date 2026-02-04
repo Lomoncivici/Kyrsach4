@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Управление контентом - КиноВечер{% endblock %}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f7fafc;
+        }
+        .admin-header {
+            background: #2d3748;
+            color: white;
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .admin-header h1 {
+            margin: 0;
+            font-size: 20px;
+        }
+        .admin-header a {
+            color: #a0aec0;
+            text-decoration: none;
+            margin-left: 15px;
+        }
+        .admin-header a:hover {
+            color: white;
+        }
+        .admin-container {
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        .admin-nav {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .admin-nav a {
+            display: inline-block;
+            padding: 8px 16px;
+            margin-right: 10px;
+            background: #edf2f7;
+            color: #4a5568;
+            text-decoration: none;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+        }
+        .admin-nav a:hover {
+            background: #e2e8f0;
+        }
+        .admin-nav a.active {
+            background: #4299e1;
+            color: white;
+            border-color: #4299e1;
+        }
+        .content-box {
+            background: white;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .btn {
+            display: inline-block;
+            padding: 8px 16px;
+            background: #4299e1;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn:hover {
+            background: #3182ce;
+        }
+        .btn-danger {
+            background: #e53e3e;
+        }
+        .btn-danger:hover {
+            background: #c53030;
+        }
+        .btn-success {
+            background: #48bb78;
+        }
+        .btn-success:hover {
+            background: #38a169;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th {
+            background: #f7fafc;
+            padding: 12px;
+            text-align: left;
+            border-bottom: 2px solid #e2e8f0;
+            color: #4a5568;
+            font-weight: 600;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        tr:hover {
+            background: #fafafa;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-movie {
+            background: #4299e1;
+            color: white;
+        }
+        .badge-series {
+            background: #ed8936;
+            color: white;
+        }
+        .badge-free {
+            background: #48bb78;
+            color: white;
+        }
+        .badge-paid {
+            background: #805ad5;
+            color: white;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+        input[type="text"],
+        input[type="number"],
+        input[type="email"],
+        input[type="password"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .alert {
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .alert-success {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+        }
+        .alert-error {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 1px solid #fc8181;
+        }
+        .alert-info {
+            background: #bee3f8;
+            color: #2a4365;
+            border: 1px solid #90cdf4;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 5px;
+        }
+        .pagination a {
+            padding: 6px 12px;
+            background: #edf2f7;
+            color: #4a5568;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        .pagination a.active {
+            background: #4299e1;
+            color: white;
+        }
+        .actions {
+            display: flex;
+            gap: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-header">
+        <h1>{% block page_title %}Управление контентом{% endblock %}</h1>
+        <div>
+            <span style="color: #a0aec0; margin-right: 15px;">{{ employee_name }}</span>
+            <a href="{% url 'admin_panel' %}">← Назад в админ-панель</a>
+            <a href="{% url 'employee_logout' %}">Выйти</a>
+        </div>
+    </div>
+    
+    <div class="admin-container">
+        <div class="admin-nav">
+            {% block admin_nav %}
+            <a href="{% url 'admin_content_list' %}" {% if request.resolver_match.url_name == 'admin_content_list' %}class="active"{% endif %}>🎬 Весь контент</a>
+            <a href="{% url 'admin_content_add' %}" {% if request.resolver_match.url_name == 'admin_content_add' %}class="active"{% endif %}>➕ Добавить контент</a>
+            <a href="{% url 'admin_genres' %}" {% if request.resolver_match.url_name == 'admin_genres' %}class="active"{% endif %}>🏷️ Жанры</a>
+            <a href="{% url 'admin_seasons_management' %}" {% if request.resolver_match.url_name == 'admin_seasons_management' %}class="active"{% endif %}>📺 Сезоны/эпизоды</a>
+            <a href="{% url 'admin_media_assets' %}" {% if request.resolver_match.url_name == 'admin_media_assets' %}class="active"{% endif %}>📁 Медиафайлы</a>
+            {% endblock %}
+        </div>
+        
+        {% if messages %}
+        <div class="content-box">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        {% block content %}
+        {% endblock %}
+    </div>
+</body>
+</html>

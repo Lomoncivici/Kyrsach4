@@ -13,9 +13,13 @@
     {% endif %}
   {% endwith %}
 
-<div id="content-root" data-content-id="{{ content.id }}">
+<div id="content-root"
+     data-content-id="{{ content.id }}"
+     data-trailer-url="{{ content.trailer_url }}"
+     data-main-url="{{ content.video_url }}"
+     data-can-watch="{% if content.can_watch %}1{% else %}0{% endif %}">
   <section class="content-detail">
-    <div class="info">
+    <div class="info" style="padding-bottom: 20px;">
       <h1 class="title">{{ content.title }}</h1>
 
       <div class="meta-row">
@@ -31,7 +35,6 @@
         <div class="desc" class="genres-inline">Жанры: {{ genres|join:", " }}</div>
       {% endif %}
 
-      <!-- Кнопки действий -->
       <div class="controls-row" id="controlsRow" style="margin-top:16px; display:flex; gap:10px;">
         <button id="openMainBtn" type="button" class="btn btn-primary btn-lg" style="display:none;">Смотреть</button>
         {% if not content.can_watch and content.cta_url %}
@@ -52,7 +55,6 @@
         {% endif %}
       </div>
 
-      <!-- === МОДАЛЬНОЕ ОКНО ДЛЯ ТРЕЙЛЕРА === -->
       <div id="trailerModal" class="modal">
         <div class="modal__inner">
           <div class="modal__header">
@@ -68,7 +70,6 @@
 
       {% if it.genres %}<span class="hero-genres">{{ it.genres|join:", " }}</span>{% endif %}
 
-      <!-- Панель сезонов/серий: рендерится JS; для сериалов показывается, для фильмов скрыто -->
       <div id="seriesPanel" class="card" style="margin-top:12px; display:none;">
         <div class="card__header" style="display:flex;align-items:center;justify-content:space-between;">
           <div class="card__title">Сезоны</div>
@@ -82,13 +83,6 @@
       {% if content.poster_url %}
         <img id="coverImg" src="{{ content.poster_url }}" alt="{{ content.title }}">
       {% endif %}
-    </div>
-  </section>
-
-  <!-- Контейнер, куда JS при необходимости смонтирует iframe плеера -->
-  <section class="player-block">
-    <div class="player" id="playerContainer">
-      <iframe id="playerFrame" src="" frameborder="0" allowfullscreen style="display:none; width:100%; aspect-ratio:16/9;"></iframe>
     </div>
   </section>
 </div>

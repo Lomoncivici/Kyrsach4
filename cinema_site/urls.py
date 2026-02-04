@@ -9,6 +9,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('employees/', include('employees.urls')),
+    path('accounts/', include('accounts.urls')),
 
     path('', catalog_views.main, name='main'),
     path('content/<uuid:pk>/', catalog_views.content_detail, name='content_detail'),
@@ -29,4 +31,7 @@ urlpatterns = [
 
     path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+
+    path('account', RedirectView.as_view(pattern_name='catalog:subscriptions', permanent=False), name='account'),
+    path('subscribe/', RedirectView.as_view(pattern_name='catalog:subscriptions', permanent=False), name='subscribe'),
 ]

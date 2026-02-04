@@ -1,0 +1,256 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Мои подписки{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/purchase.css' %}">
+<link rel="stylesheet" href="{% static 'css/profile.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="purchase-page">
+  <div class="container mt-4">
+
+    {% if messages %}
+      <div class="messages">
+        {% for m in messages %}
+          <div class="alert {% if m.tags %}alert-{{ m.tags }}{% endif %}">{{ m }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="panel subscription-panel">
+      <h2>Ваша текущая подписка</h2>
+      {% if subscription and subscription.is_actually_active %}
+        <div class="subscription-status active">
+          <p><strong>Активна: {{ subscription.plan.name }}</strong></p>
+          <p>Цена: {{ subscription.plan.price }} ₽</p>
+
+          {% if subscription.expires_at %}
+            <p>
+              Действует до:
+              <time datetime="{{ subscription.expires_at|date:'c' }}">
+                {{ subscription.expires_at|date:'d.m.Y H:i' }}
+              </time>
+            </p>
+          {% endif %}
+
+          <p>Период: {{ subscription.plan.period_months }} мес.</p>
+          <p>Статус: {{ subscription.status|title }}</p>
+        </div>
+      {% else %}
+        <p class="muted">У вас нет активной подписки</p>
+      {% endif %}
+    </div>
+
+    <div class="panel">
+      <h2 class="h2">История подписок</h2>
+
+      {% if subscriptions %}
+        <ul class="sub-history">
+          {% for sub in subscriptions %}
+            <li class="sub-item
+              {% if sub.is_actually_active %}is-active
+              {% elif sub.status == 'cancelled' %}is-cancelled
+              {% elif sub.get_actual_status == 'expired' %}is-expired
+              {% endif %}">
+
+              <div class="sub-main">
+                <div class="sub-title">
+                  {{ sub.plan.name }}
+                  <span class="sub-period">{{ sub.plan.period_months }} мес.</span>
+
+                  {% if sub.is_actually_active and sub.expires_at %}
+                    <span class="sub-days-left">
+                      (осталось {{ sub.expires_at|timeuntil }})
+                    </span>
+                  {% endif %}
+                </div>
+
+                <div class="sub-status">
+                  {% if sub.is_actually_active %}
+                    <span class="status-badge status-active">Активна</span>
+                    {% if sub.expires_at %}
+                      <div class="sub-expires">
+                        до {{ sub.expires_at|date:"d.m.Y" }}
+                      </div>
+                    {% endif %}
+                  {% elif sub.status == 'cancelled' %}
+                    <span class="status-badge status-cancelled">Отменена</span>
+                  {% elif sub.get_actual_status == 'expired' %}
+                    <span class="status-badge status-expired">Истекла</span>
+                  {% else %}
+                    <span class="status-badge status-other">
+                      {{ sub.get_actual_status }}
+                    </span>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="sub-meta">
+                <span>{{ sub.started_at|date:"d.m.Y" }}</span>
+                <span>—</span>
+                <span>
+                  {% if sub.expires_at %}
+                    {{ sub.expires_at|date:"d.m.Y" }}
+                  {% else %}
+                    ∞
+                  {% endif %}
+                </span>
+
+                <span class="sub-price">
+                  {{ sub.plan.price|floatformat:0 }} ₽
+                </span>
+              </div>
+
+              {% if sub.is_actually_active %}
+                <div class="sub-actions">
+                  <form method="post"
+                        action="{% url 'catalog:cancel_subscription' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="subscription_id" value="{{ sub.id }}">
+                    <button class="btn btn-outline btn-sm btn-danger-soft"
+                            onclick="confirmCancelSubscription('{{ sub.plan.name }}', {{ sub.days_since_start }})">
+                      Отменить
+                    </button>
+                  </form>
+                </div>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+
+        <div class="sub-summary muted">
+          Всего: {{ subscriptions|length }},
+          активных: {{ active_count }},
+          отменено: {{ cancelled_count }},
+          истекло: {{ expired_count }}
+        </div>
+      {% else %}
+        <p class="muted">История подписок пуста</p>
+      {% endif %}
+    </div>
+
+    <div class="panel">
+      <h2 class="h2">Доступные планы подписок</h2>
+      
+      {% if plans %}
+        <div class="subscription-plans">
+          {% for plan in plans %}
+            <div class="subscription-plan-card {% if subscription and subscription.plan.id == plan.id %}current-plan{% endif %}">
+              <div class="plan-header">
+                <h3 class="plan-name">{{ plan.name }}</h3>
+                {% if subscription and subscription.plan.id == plan.id %}
+                  <span class="current-badge">Текущая</span>
+                {% endif %}
+              </div>
+              
+              <div class="plan-price">
+                <span class="price-amount">{{ plan.price|floatformat:0 }}</span>
+                <span class="price-currency">₽</span>
+                <span class="price-period">/ {{ plan.period_months }} мес.</span>
+              </div>
+              
+              <div class="plan-features">
+                <ul>
+                  <li>Доступ ко всему контенту по подписке</li>
+                  <li>Бесплатный контент всегда доступен</li>
+                  <li>Платный контент покупается отдельно</li>
+                  {% if plan.period_months == 12 %}
+                    <li class="feature-highlight">🎁 Самая выгодная цена за год</li>
+                  {% endif %}
+                </ul>
+              </div>
+              
+              <div class="plan-actions">
+                {% if subscription and subscription.plan.id == plan.id %}
+                  <button class="btn btn-outline btn-sm w-100" disabled>
+                    Текущий план
+                  </button>
+                {% else %}
+                  <a href="{% url 'catalog:activate_subscription' plan.code %}" 
+                    class="btn btn-primary btn-sm w-100">
+                    {% if has_active_subscription %}
+                      Сменить план
+                    {% else %}
+                      Активировать
+                    {% endif %}
+                  </a>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+        
+        <div class="plan-info muted">
+          <p>💡 Платный контент покупается отдельно не зависимо от подписки !</p>
+        </div>
+      {% else %}
+        <p class="muted">В данный момент нет доступных планов подписки</p>
+      {% endif %}
+    </div>
+
+    <div class="panel my-section purchase-page">
+      <h2 class="h2">Купить фильм</h2>
+
+      <form method="get"
+            action="{% url 'catalog:subscribe' %}"
+            class="purchase-search">
+        <input type="text"
+              name="q"
+              placeholder="Поиск фильмов и сериалов…"
+              value="{{ query }}">
+        <button class="btn btn-outline btn-sm">Найти</button>
+      </form>
+
+      {% if content_list %}
+        <div class="cards-container">
+          <div class="cards-grid">
+            {% for content in content_list %}
+              <div class="card purchase-card">
+
+                {% if content.cover_image %}
+                  <img src="{{ content.cover_image.url }}"
+                      alt="{{ content.title }}">
+                {% endif %}
+
+                <div class="card-title">{{ content.title }}</div>
+                <div class="card-meta">
+                  {{ content.description|truncatewords:12 }}
+                </div>
+                <div class="card-meta">
+                  <strong>{{ content.price|floatformat:0 }} ₽</strong>
+                </div>
+
+                <div class="card-actions">
+                  <a href="{% url 'catalog:content_detail' pk=content.id %}"
+                    class="btn btn-outline btn-sm w-100">
+                    Подробнее
+                  </a>
+                  <a href="{% url 'catalog:purchase_start' pk=content.id %}"
+                    class="btn btn-primary btn-sm w-100">
+                    Купить
+                  </a>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% else %}
+        <p class="muted">
+          {% if query %}
+            По запросу «{{ query }}» ничего не найдено
+          {% else %}
+            Нет доступного контента для покупки
+          {% endif %}
+        </p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/subscription_logic.js' %}"></script>
+{% endblock %}

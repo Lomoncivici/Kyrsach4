@@ -12,13 +12,20 @@
   const mainUrl = root.dataset.mainUrl || "";
   const canWatch = root.dataset.canWatch === "1";
 
+  function hideInlinePlayer(){
+    if (playerFrame){
+      try { playerFrame.removeAttribute('src'); } catch(e){}
+      playerFrame.style.display = 'none';
+    }
+    if (coverImg) coverImg.style.display = '';
+  }
+
   if (!IS_AUTH) {
     const bar = document.getElementById('ratingBar');
     if (bar) bar.remove();
     window.ratingInit = () => {};
   }
 
-  // 1) Реальная пропорция постера → в CSS-переменную
   function setPosterRatio(){
     if (!coverImg) return;
     if (coverImg.naturalWidth && coverImg.naturalHeight){
@@ -32,18 +39,6 @@
     coverImg.addEventListener('load', setPosterRatio);
   }
 
-  // 2) Показать кнопку "Смотреть", если есть доступ/ссылка
-  if (canWatch && mainUrl){
-    openMainBtn.style.display = '';
-    openMainBtn.addEventListener('click', () => {
-      if (!playerFrame) return;
-      playerFrame.src = mainUrl;
-      playerFrame.style.display = 'block';
-      playerFrame.scrollIntoView({behavior:'smooth', block:'start'});
-    });
-  }
-
-  // 3) Трейлер по кнопке
   if (openTrailerBtn){
     openTrailerBtn.addEventListener('click', () => {
       if (!playerFrame) return;
@@ -69,7 +64,6 @@
     const s = String(u);
     const origin = encodeURIComponent(location.origin);
 
-    // YouTube → embed (nocookie) + базовые параметры
     if (s.includes("youtube.com/watch")) {
       try{
         const url = new URL(s);
@@ -83,7 +77,21 @@
       return `https://www.youtube-nocookie.com/embed/${vid}?rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&fs=1&origin=${origin}`;
     }
 
-    // RuTube/прочее — как есть
+    if (s.includes("rutube.ru")) {
+      if (s.includes("/video/") && !s.includes("/play/embed/")) {
+        const match = s.match(/rutube\.ru\/video\/([a-f0-9]{32})/i);
+        if (match && match[1]) {
+          return `https://rutube.ru/play/embed/${match[1]}/?autoplay=1&mute=0`;
+        }
+      }
+      if (s.includes("/play/embed/")) {
+        const baseUrl = s.split('?')[0];
+        const params = new URLSearchParams(s.split('?')[1] || '');
+        params.set('autoplay', '1');
+        params.set('mute', '0');
+        return baseUrl + '?' + params.toString();
+      }
+    }
     return s;
   }
   function getContentId(){
@@ -110,7 +118,6 @@
     return data;
   }
 
-  // HIST: helper для записи прогресса/начала просмотра
   async function postProgress(contentId, position=0, duration=null, sn=0, en=0, completed=false){
     try{
       await apiJson(`/api/v1/content/${contentId}/progress/`, {
@@ -121,14 +128,12 @@
         },
         body: JSON.stringify({ position, duration, sn, en, completed })
       });
-    }catch(_e){ /* тихо */ }
+    }catch(_e){}
   }
 
-  // --- DOM helpers ---
   function ensurePlayerIframe(){
     let iframe = $("#playerFrame");
     if(iframe) return iframe;
-    // Попробуем найти контейнер .player или .player-block и смонтировать туда iframe
     let host = $(".player") || $(".player-block") || $("#content-root") || document.body;
     iframe = document.createElement("iframe");
     iframe.id = "playerFrame";
@@ -154,7 +159,6 @@
     host.appendChild(btn); return btn;
   }
 
-  // --- панель сериалов
   function mountSeriesPanelHost(){
     const controls = document.querySelector('.controls-row') || document.querySelector('.info') || document.getElementById('content-root') || document.body;
     let panel = document.getElementById('seriesPanel');
@@ -314,40 +318,100 @@
     let bar = $("#ratingBar");
     if(!bar){
       const host = $(".meta-row") || $(".info") || $("#content-root") || document.body;
-      bar = document.createElement("div"); bar.id="ratingBar"; bar.className="rating-bar"; bar.dataset.postUrl = "/api/v1/rating/legacy";
+      bar = document.createElement("div");
+      bar.id="ratingBar";
+      bar.className="rating-bar";
       bar.innerHTML = `<div class="rating-bar__fill"></div><div class="rating-bar__steps"></div><span id="avgRating">-</span>`;
       host.appendChild(bar);
     }
+
+    const contentId = root.dataset.contentId;
+    if(contentId){
+      bar.dataset.postUrl = `/api/v1/content/${contentId}/rate/`;
+    }
+
     const steps = $(".rating-bar__steps", bar);
     if(steps && steps.children.length < 10){
-      steps.innerHTML = ""; for(let i=0;i<10;i++){ const s=document.createElement("span"); s.className="rating-bar__step"; s.dataset.half = (i+1); steps.appendChild(s); }
+      steps.innerHTML = "";
+      for(let i=0;i<10;i++){
+        const s=document.createElement("span");
+        s.className="rating-bar__step";
+        s.dataset.half = (i+1);
+        steps.appendChild(s);
+      }
     }
     return bar;
-  }
+}
 
-  function initRating(bar){
+  function initRating(bar) {
     if (!bar) return;
 
     const fill  = bar.querySelector('.rating-bar__fill');
     const steps = bar.querySelectorAll('.rating-bar__step');
     const avgEl = document.getElementById('avgRating');
 
-    const setFillByHalf = (half)=>{ if(fill) fill.style.width = (half*10)+'%'; };
-    const resetFill = ()=>{
-      const avg = parseFloat((avgEl?.textContent || '0').replace(',', '.')) || 0;
-      setFillByHalf(Math.round(avg*2));
+    const setFillByHalf = (half) => {
+        if(fill) fill.style.width = Math.min(Math.max(half*10,0),100)+'%';
     };
+
+    const resetFill = () => {
+        const avg = parseFloat(String(avgEl?.textContent || '0').replace(',', '.')) || 0;
+        setFillByHalf(avg*2);
+    };
+
     resetFill();
 
+    const root = document.getElementById('content-root');
+    if (!root) return;
+
+    const contentId = root.dataset.contentId;
+    if (!contentId) return;
+
+    const postUrl = `/api/v1/content/${contentId}/rate/`;
+    const getUrl  = `/api/v1/content/${contentId}/`;
+    bar.dataset.postUrl = postUrl;
+
     steps.forEach((el, i) => {
-      const half = i + 1;
-      el.addEventListener('mouseenter', () => setFillByHalf(half));
-      el.addEventListener('mouseleave', resetFill);
-      el.addEventListener('click', async () => {
-        const value = Math.round(half/2);
-      });
+        const half = i + 1;
+
+        el.addEventListener('mouseenter', () => setFillByHalf(half));
+        el.addEventListener('mouseleave', resetFill);
+
+        el.addEventListener('click', async () => {
+            const value = Math.round(half / 2);
+            setFillByHalf(half);
+
+            try {
+                const resp = await fetch(postUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCSRF()
+                    },
+                    body: JSON.stringify({ value }),
+                    credentials: 'same-origin'
+                });
+                if (!resp.ok) throw new Error('Ошибка сервера при отправке рейтинга');
+
+                const dataResp = await fetch(getUrl, { credentials: 'same-origin' });
+                if (!dataResp.ok) throw new Error('Ошибка сервера при получении рейтинга');
+
+
+                const data = await resp.json();
+                if (data.avg !== undefined && avgEl) {
+                    const avg = parseFloat(String(data.avg).replace(',', '.')) || 0;
+                    avgEl.textContent = avg.toFixed(1);
+                    setFillByHalf(avg*2);
+                }
+
+            } catch (err) {
+                console.error(err);
+                alert('Не удалось обновить рейтинг');
+                resetFill();
+            }
+        });
     });
-  }
+ }
 
   async function ensureFavoriteButton(contentId){
     const btn = document.getElementById('favBtn');
@@ -392,9 +456,24 @@
     });
   }
 
+  async function startMovieOverlay(contentId){
+    try{
+      const s = await apiJson(`/api/v1/content/${contentId}/source/`);
+      if (s.ok && s.url){
+        await postProgress(contentId, 0, null, 0, 0, false);
+        openMainPlayer(s.kind, s.url, contentId, 'movie');
+      } else {
+        alert('Источник недоступен');
+      }
+    }catch{ alert('Источник недоступен'); }
+  }
+
+
   document.addEventListener('DOMContentLoaded', async () => {
     const cid = getContentId(); 
     if (!cid) return;
+
+    hideInlinePlayer();
 
     const iframe = ensurePlayerIframe();
     const cover  = ensureCover();
@@ -488,46 +567,26 @@
       if(avgEl && typeof detail.avg_rating !== 'undefined'){ avgEl.textContent = Number(detail.avg_rating||0).toFixed(1); }
     }catch{}
 
-    if(!isFree){
-      try{
+    if (!isFree) {
+      let allowed = false;
+      try {
         const cw = await apiJson(`/api/v1/content/${cid}/can_watch/`);
-        if(cw.can_watch){
-          if(ctype === 'movie'){
-            const s = await apiJson(`/api/v1/content/${cid}/source/`);
-            if(s.ok && s.url){
-              iframe.src = (s.kind==='youtube'||s.kind==='rutube') ? toEmbed(s.url) : s.url;
-              iframe.style.display=''; cover.style.display='none';
-            }
-          }else{
-            try{
-              const s = await apiJson(`/api/v1/content/${cid}/episode-source/?sn=1&en=1`);
-              if(s.ok && s.url){
-                iframe.src = (s.kind==='youtube'||s.kind==='rutube') ? toEmbed(s.url) : s.url;
-                iframe.style.display=''; cover.style.display='none';
-              }
-            }catch{}
-          }
+        allowed = !!cw.can_watch;
+      } catch { allowed = false; }
+
+      if (ctype === 'movie') {
+        const mainBtn = ensureWatchButton();
+        if (allowed) {
+          mainBtn.style.display = '';
+          mainBtn.onclick = async (e) => { e.preventDefault(); await startMovieOverlay(cid); };
         } else {
-          iframe.style.display='none'; cover.style.display='';
+          mainBtn.style.display = 'none';
         }
-      }catch{}
-    } else if (ctype !== 'series') {
+      }
+    } else if (ctype === 'movie') {
       const mainBtn = ensureWatchButton();
       mainBtn.style.display = '';
-      mainBtn.addEventListener('click', async ()=>{
-        try{
-          let s;
-          if(ctype === 'movie'){
-            s = await apiJson(`/api/v1/content/${cid}/source/`);
-            await postProgress(cid, 0, null, 0, 0, false);
-          }else{
-            s = await apiJson(`/api/v1/content/${cid}/episode-source/?sn=1&en=1`);
-            await postProgress(cid, 0, null, 1, 1, false);
-          }
-          if(s.ok && s.url) openMainPlayer(s.kind, s.url, cid, ctype);
-          else alert('Источник недоступен');
-        }catch{ alert('Источник недоступен'); }
-      }, { once:true });
+      mainBtn.onclick = async (e) => { e.preventDefault(); await startMovieOverlay(cid); };
     }
 
     const trailerBtn = ensureTrailerButton();

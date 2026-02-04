@@ -1,0 +1,88 @@
+{% extends 'employees/admin/admin_base.html' %}
+
+{% block title %}Сезон {{ season_num }} - {{ series_title }}{% endblock %}
+{% block page_title %}📺 Сезон {{ season_num }}: {{ series_title }}{% endblock %}
+
+{% block content %}
+<div class="content-box">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin: 0;">Эпизоды сезона {{ season_num }}</h2>
+        <div style="display: flex; gap: 10px;">
+            <a href="{% url 'admin_episode_add' season_id %}" class="btn btn-success">➕ Добавить эпизод</a>
+            <a href="{% url 'admin_seasons_management' %}?series_id={{ series_id }}" 
+               class="btn" style="background: #a0aec0;">← Назад к сезонам</a>
+        </div>
+    </div>
+    
+    {% if messages %}
+    <div class="alert alert-info">
+        {% for message in messages %}
+        {{ message }}
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    {% if episodes %}
+    <table>
+        <thead>
+            <tr>
+                <th>Эпизод</th>
+                <th>Название</th>
+                <th>Описание</th>
+                <th>Длительность</th>
+                <th>Видео</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for episode in episodes %}
+            <tr>
+                <td style="font-weight: bold;">{{ episode.1 }}</td>
+                <td>
+                    <strong>{{ episode.2 }}</strong>
+                </td>
+                <td>
+                    {% if episode.3 %}
+                    {{ episode.3|truncatechars:60 }}
+                    {% else %}
+                    <span style="color: #a0aec0;">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if episode.4 %}
+                    {{ episode.4|divisibleby:60|yesno:"ч.,мин." }}
+                    {% else %}
+                    <span style="color: #a0aec0;">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if episode.5 %}
+                    <span class="badge" style="background: #48bb78;">Есть</span>
+                    {% else %}
+                    <span class="badge" style="background: #e53e3e;">Нет</span>
+                    {% endif %}
+                </td>
+                <td class="actions">
+                    <a href="{% url 'admin_episode_edit' episode.0 %}" class="btn" style="padding: 4px 8px; font-size: 12px;">✏️</a>
+                    <form method="post" action="{% url 'admin_episode_delete' episode.0 %}" style="display: inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{% url 'admin_season_detail' season_id %}">
+                        <button type="submit" class="btn btn-danger" 
+                                style="padding: 4px 8px; font-size: 12px;"
+                                onclick="return confirm('Удалить эпизод «{{ episode.2 }}»?')">
+                            🗑️
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div style="text-align: center; padding: 40px; color: #718096;">
+        <p>В этом сезоне еще нет эпизодов</p>
+        <a href="{% url 'admin_episode_add' season_id %}" class="btn btn-success" style="margin-top: 15px;">Добавить первый эпизод</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

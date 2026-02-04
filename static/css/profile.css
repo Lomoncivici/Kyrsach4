@@ -1,0 +1,129 @@
+.subscription-panel {
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+}
+
+.subscription-status.active {
+  border-left: 4px solid #28a745;
+  padding-left: 1rem;
+}
+
+.subscription-status.inactive {
+  border-left: 4px solid #dc3545;
+  padding-left: 1rem;
+  color: #555;
+}
+
+.subscription-status p {
+  margin: 0.3rem 0;
+}
+
+.subscription-panel .btn-row {
+  margin-top: 0.8rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+
+.sub-history{
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: grid;
+  gap: 8px;
+}
+
+.sub-item{
+  padding: 10px 12px;
+  border: 1px solid #2a2f3a;
+  border-radius: 10px;
+  background: #0f1117;
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.sub-main{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sub-title{
+  font-weight: 600;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.sub-period{
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.sub-status{
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.sub-meta{
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.sub-price{
+  margin-left: auto;
+  color: #e6eaf0;
+  font-weight: 600;
+}
+
+.sub-item.is-active{
+  border-left: 3px solid #28a745;
+}
+
+.sub-item.is-cancelled{
+  border-left: 3px solid #dc3545;
+  opacity: .75;
+}
+
+.sub-item.is-expired{
+  border-left: 3px solid #ffc107;
+}
+
+.sub-summary{
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+
+.purchase-search{
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.purchase-search input{
+  flex: 1;
+  height: 34px;
+  padding: 0 14px;
+
+  background: #0f1117;
+  border: 1px solid #2a2f3a;
+  border-radius: 12px;
+
+  color: #fff;
+  font-size: 14px;
+}
+
+.purchase-search input::placeholder{
+  color: #6b7280;
+}
+
+.purchase-search input:focus{
+  outline: none;
+  border-color: #3b82f6;
+}

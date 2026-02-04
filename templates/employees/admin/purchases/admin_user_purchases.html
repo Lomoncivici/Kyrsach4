@@ -1,0 +1,338 @@
+{% extends 'employees/admin/admin_base.html' %}
+
+{% block title %}Покупки контента - Управление контентом{% endblock %}
+{% block page_title %}🛒 Покупки контента{% endblock %}
+
+{% block admin_nav %}
+{{ block.super }}
+<a href="{% url 'admin_user_purchases' %}" 
+   {% if request.resolver_match.url_name == 'admin_user_purchases' %}class="active"{% endif %}>
+   🛒 Покупки контента
+</a>
+<a href="{% url 'admin_grant_purchase' %}" 
+   {% if request.resolver_match.url_name == 'admin_grant_purchase' %}class="active"{% endif %}>
+   🎁 Выдать покупку
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="content-box">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin: 0;">Покупки контента пользователями</h2>
+        <div>
+            <a href="{% url 'admin_grant_purchase' %}" class="btn btn-success">🎁 Выдать покупку</a>
+            <a href="{% url 'export_purchases' %}" class="btn" style="background: #4a5568;">📊 Экспорт</a>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <div style="font-size: 14px; color: #718096;">Всего покупок</div>
+            <div style="font-size: 24px; font-weight: bold;">{{ stats.0|default:0 }}</div>
+        </div>
+        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <div style="font-size: 14px; color: #718096;">Общая сумма</div>
+            <div style="font-size: 24px; font-weight: bold;">{{ stats.1|floatformat:2|default:"0.00" }} ₽</div>
+        </div>
+        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <div style="font-size: 14px; color: #718096;">Покупателей</div>
+            <div style="font-size: 24px; font-weight: bold; color: #4299e1;">{{ stats.2|default:0 }}</div>
+        </div>
+        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <div style="font-size: 14px; color: #718096;">Контента</div>
+            <div style="font-size: 24px; font-weight: bold; color: #48bb78;">{{ stats.3|default:0 }}</div>
+        </div>
+    </div>
+    
+    <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <form method="get" id="filterForm" style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+            <input type="text" name="search" value="{{ search_query }}" 
+                   placeholder="Поиск по логину, email или названию контента..." 
+                   style="flex: 1; padding: 10px; border: 1px solid #e2e8f0; border-radius: 4px;">
+            <button type="submit" class="btn" style="background: #4299e1;">🔍 Поиск</button>
+            <button type="button" onclick="clearFilters()" class="btn" style="background: #a0aec0;">❌ Очистить</button>
+        </form>
+        
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <div>
+                <select name="user_id" id="userFilter" onchange="submitForm()" 
+                        style="padding: 6px 12px; border: 1px solid #e2e8f0; border-radius: 4px;">
+                    <option value="">Все пользователи</option>
+                    {% for user in users %}
+                    <option value="{{ user.0 }}" {% if user_filter == user.0 %}selected{% endif %}>
+                        {{ user.1 }} ({{ user.2|truncatechars:20 }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <select name="content_id" id="contentFilter" onchange="submitForm()" 
+                        style="padding: 6px 12px; border: 1px solid #e2e8f0; border-radius: 4px;">
+                    <option value="">Весь контент</option>
+                    {% for content in content_list %}
+                    <option value="{{ content.0 }}" {% if content_filter == content.0 %}selected{% endif %}>
+                        {{ content.1 }} ({{ content.2 }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <input type="date" name="date_from" id="dateFrom" value="{{ date_from }}" 
+                       placeholder="Дата с" style="padding: 6px 12px; border: 1px solid #e2e8f0; border-radius: 4px;"
+                       onchange="submitForm()">
+            </div>
+            <div>
+                <input type="date" name="date_to" id="dateTo" value="{{ date_to }}" 
+                       placeholder="Дата по" style="padding: 6px 12px; border: 1px solid #e2e8f0; border-radius: 4px;"
+                       onchange="submitForm()">
+            </div>
+        </div>
+    </div>
+    
+    {% if purchases %}
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Пользователь</th>
+                    <th>Контент</th>
+                    <th>Цена</th>
+                    <th>Оплата</th>
+                    <th>Дата покупки</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for purchase in purchases %}
+                <tr>
+                    <td>
+                        <strong>{{ purchase.user_login }}</strong>
+                        <div style="font-size: 12px; color: #718096;">
+                            {{ purchase.user_email|truncatechars:20 }}
+                        </div>
+                    </td>
+                    <td>
+                        <strong>{{ purchase.content_title }}</strong>
+                        <div style="font-size: 12px; color: #718096;">
+                            {% if purchase.content_type == 'movie' %}
+                            <span class="badge badge-movie">Фильм</span>
+                            {% else %}
+                            <span class="badge badge-series">Сериал</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <strong>{{ purchase.content_price }} ₽</strong>
+                        {% if purchase.content_price > 0 and not purchase.is_free %}
+                        <div style="font-size: 12px; color: #718096;">
+                            Платный
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if purchase.payment_amount %}
+                        <span class="badge" style="background: {% if purchase.payment_status == 'paid' %}#48bb78{% elif purchase.payment_status == 'refunded' %}#e53e3e{% else %}#ed8936{% endif %};">
+                            {{ purchase.payment_status|default:"ожидание" }}
+                        </span>
+                        <div style="font-size: 12px; color: #718096;">
+                            {{ purchase.payment_amount }} ₽
+                        </div>
+                        {% else %}
+                        <span class="badge" style="background: #a0aec0;">
+                            без оплаты
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {{ purchase.purchased_at|date:"d.m.Y H:i" }}
+                        <div style="font-size: 12px; color: #718096;">
+                            {{ purchase.created_at|date:"d.m.Y" }}
+                        </div>
+                    </td>
+                    <td class="actions">
+                        <form method="post" action="{% url 'admin_purchase_delete' purchase.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger" 
+                                    style="padding: 4px 8px; font-size: 12px;"
+                                    onclick="return confirm('Удалить покупку контента «{{ purchase.content_title }}» у пользователя {{ purchase.user_login }}?')">
+                                🗑️
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {% if search_query or user_filter or content_filter or date_from or date_to %}
+    <div style="margin-top: 20px; padding: 10px; background: #f0fff4; border: 1px solid #9ae6b4; border-radius: 4px;">
+        Найдено {{ purchases|length }} покупок
+        {% if search_query %}по запросу: "<strong>{{ search_query }}</strong>"{% endif %}
+        {% if user_filter %}пользователь: <strong>{{ user_filter }}</strong>{% endif %}
+        {% if content_filter %}контент: <strong>{{ content_filter }}</strong>{% endif %}
+        {% if date_from %}с {{ date_from }}{% endif %}
+        {% if date_to %}по {{ date_to }}{% endif %}
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <div style="text-align: center; padding: 40px; color: #718096;">
+        {% if search_query or user_filter or content_filter or date_from or date_to %}
+        <p>По заданным фильтрам ничего не найдено</p>
+        <a href="{% url 'admin_user_purchases' %}" class="btn" style="margin-top: 15px;">Показать все покупки</a>
+        {% else %}
+        <p>Покупки контента не найдены</p>
+        <a href="{% url 'admin_grant_purchase' %}" class="btn btn-success" style="margin-top: 15px;">
+            🎁 Выдать первую покупку
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<div id="refundModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 500px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin: 0;">Оформление возврата</h3>
+            <button type="button" onclick="closeModal('refundModal')" 
+                    style="background: none; border: none; font-size: 24px; cursor: pointer; color: #718096;">&times;</button>
+        </div>
+        
+        <div id="refundInfo" style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        </div>
+        
+        <form method="post" id="refundForm" action="">
+            {% csrf_token %}
+            <input type="hidden" id="refundPurchaseId" name="purchase_id" value="">
+            
+            <div class="form-group">
+                <label for="refund_reason">Причина возврата *</label>
+                <textarea id="refund_reason" name="refund_reason" 
+                          placeholder="Укажите причину возврата..." 
+                          required rows="3"></textarea>
+            </div>
+            
+            <div class="form-group" style="margin-top: 25px; display: flex; gap: 10px;">
+                <button type="submit" class="btn btn-danger" style="flex: 1;">💸 Оформить возврат</button>
+                <button type="button" onclick="closeModal('refundModal')" class="btn" 
+                        style="background: #a0aec0; flex: 1;">Отмена</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    document.getElementById('userFilter').value = urlParams.get('user_id') || '';
+    document.getElementById('contentFilter').value = urlParams.get('content_id') || '';
+    document.getElementById('dateFrom').value = urlParams.get('date_from') || '';
+    document.getElementById('dateTo').value = urlParams.get('date_to') || '';
+    
+    const searchInput = document.querySelector('input[name="search"]');
+    searchInput.value = urlParams.get('search') || '';
+});
+
+function submitForm() {
+    const form = document.getElementById('filterForm');
+    const formData = new FormData(form);
+    
+    const searchValue = document.querySelector('input[name="search"]').value;
+    const userValue = document.getElementById('userFilter').value;
+    const contentValue = document.getElementById('contentFilter').value;
+    const dateFromValue = document.getElementById('dateFrom').value;
+    const dateToValue = document.getElementById('dateTo').value;
+    
+    const params = new URLSearchParams();
+    
+    if (searchValue) params.set('search', searchValue);
+    if (userValue) params.set('user_id', userValue);
+    if (contentValue) params.set('content_id', contentValue);
+    if (dateFromValue) params.set('date_from', dateFromValue);
+    if (dateToValue) params.set('date_to', dateToValue);
+    
+    window.location.href = '{% url "admin_user_purchases" %}' + (params.toString() ? '?' + params.toString() : '');
+}
+
+function clearFilters() {
+    window.location.href = '{% url "admin_user_purchases" %}';
+}
+
+function showRefundModal(purchaseId, contentTitle, userLogin, price) {
+    document.getElementById('refundPurchaseId').value = purchaseId;
+    document.getElementById('refundForm').action = '{% url "admin_purchase_refund" "00000000-0000-0000-0000-000000000000" %}'.replace('00000000-0000-0000-0000-000000000000', purchaseId);
+    
+    document.getElementById('refundInfo').innerHTML = `
+        <strong>Информация о покупке:</strong><br>
+        <strong>Пользователь:</strong> ${userLogin}<br>
+        <strong>Контент:</strong> ${contentTitle}<br>
+        <strong>Цена:</strong> ${price} ₽<br>
+        <br>
+        <span style="color: #e53e3e; font-weight: bold;">⚠️ Внимание: После возврата покупка будет удалена!</span>
+    `;
+    
+    document.getElementById('refundModal').style.display = 'flex';
+    document.getElementById('refund_reason').focus();
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+    document.getElementById('refund_reason').value = '';
+}
+
+window.onclick = function(event) {
+    if (event.target == document.getElementById('refundModal')) {
+        closeModal('refundModal');
+    }
+}
+
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeModal('refundModal');
+    }
+});
+</script>
+
+<style>
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+.modal-content {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { 
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to { 
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,171 @@
+{% extends 'employees/admin/admin_base.html' %}
+
+{% block title %}Тарифные планы - Подписки и платежи{% endblock %}
+{% block page_title %}💰 Тарифные планы{% endblock %}
+
+{% block admin_nav %}
+{{ block.super }}
+<a href="{% url 'admin_user_subscriptions' %}" 
+   {% if request.resolver_match.url_name == 'admin_user_subscriptions' %}class="active"{% endif %}>
+   👥 Пользовательские подписки
+</a>
+<a href="{% url 'admin_payments' %}" 
+   {% if request.resolver_match.url_name == 'admin_payments' %}class="active"{% endif %}>
+   💳 Платежи
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="content-box">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin: 0;">Тарифные планы подписок</h2>
+        <div>
+            <a href="{% url 'admin_subscription_create' %}" class="btn btn-success">➕ Создать тариф</a>
+            <a href="{% url 'export_subscriptions' %}?type=plans" class="btn" style="background: #4a5568;">📊 Экспорт</a>
+        </div>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <div style="font-size: 14px; color: #718096;">Всего тарифов</div>
+            <div style="font-size: 24px; font-weight: bold;">{{ total_plans }}</div>
+        </div>
+        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <div style="font-size: 14px; color: #718096;">Активных</div>
+            <div style="font-size: 24px; font-weight: bold; color: #48bb78;">{{ active_plans }}</div>
+        </div>
+        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <div style="font-size: 14px; color: #718096;">Используется</div>
+            <div style="font-size: 24px; font-weight: bold;">{{ used_plans|default:0 }}</div>
+        </div>
+    </div>
+    
+    <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <form method="get" style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+            <input type="text" name="search" value="{{ search_query }}" 
+                   placeholder="Поиск по названию или коду..." 
+                   style="flex: 1; padding: 10px; border: 1px solid #e2e8f0; border-radius: 4px;">
+            <button type="submit" class="btn" style="background: #4299e1;">🔍 Поиск</button>
+            {% if search_query or status_filter != 'all' %}
+            <a href="{% url 'admin_subscriptions' %}" class="btn" style="background: #a0aec0;">❌ Очистить</a>
+            {% endif %}
+        </form>
+        
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <a href="?search={{ search_query }}&status=all" 
+               class="btn {% if status_filter == 'all' %}active{% endif %}" 
+               style="background: #4a5568;">Все</a>
+            <a href="?search={{ search_query }}&status=active" 
+               class="btn {% if status_filter == 'active' %}active{% endif %}" 
+               style="background: #48bb78;">Активные</a>
+            <a href="?search={{ search_query }}&status=inactive" 
+               class="btn {% if status_filter == 'inactive' %}active{% endif %}" 
+               style="background: #a0aec0;">Неактивные</a>
+        </div>
+    </div>
+    
+    {% if plans %}
+    <table>
+        <thead>
+            <tr>
+                <th>Код</th>
+                <th>Название</th>
+                <th>Период</th>
+                <th>Цена</th>
+                <th>Пользователей</th>
+                <th>Статус</th>
+                <th>Создан</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for plan in plans %}
+            <tr>
+                <td><strong>{{ plan.code }}</strong></td>
+                <td>
+                    <strong>{{ plan.name }}</strong>
+                    <div style="font-size: 12px; color: #718096;">
+                        ID: {{ plan.id|slice:":8" }}...
+                    </div>
+                </td>
+                <td>{{ plan.period_months }} мес.</td>
+                <td>
+                    <strong>{{ plan.price }} ₽</strong>
+                    {% if plan.period_months > 1 %}
+                    <div style="font-size: 12px; color: #718096;">
+                        {% widthratio plan.price plan.period_months 1 as price_per_month %}
+                        ~{{ price_per_month|floatformat:2 }} ₽/мес
+                    </div>
+                    {% endif %}
+                </td>
+                <td>
+                    {{ plan.user_count }}
+                    {% if plan.active_count > 0 %}
+                    <div style="font-size: 12px; color: #48bb78;">
+                        {{ plan.active_count }} актив.
+                    </div>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if plan.is_active %}
+                    <span class="badge" style="background: #48bb78;">Активен</span>
+                    {% else %}
+                    <span class="badge" style="background: #a0aec0;">Неактивен</span>
+                    {% endif %}
+                </td>
+                <td>{{ plan.created_at|date:"d.m.Y" }}</td>
+                <td class="actions">
+                    <a href="{% url 'admin_subscription_edit' plan.id %}" class="btn" style="padding: 4px 8px; font-size: 12px;">✏️</a>
+                    
+                    {% if plan.is_active %}
+                    <form method="post" action="{% url 'admin_subscription_toggle' plan.id %}" style="display: inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="deactivate">
+                        <button type="submit" class="btn" style="background: #ed8936; padding: 4px 8px; font-size: 12px;"
+                                onclick="return confirm('Деактивировать тариф «{{ plan.name }}»?')">
+                            ⏸️
+                        </button>
+                    </form>
+                    {% else %}
+                    <form method="post" action="{% url 'admin_subscription_toggle' plan.id %}" style="display: inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="activate">
+                        <button type="submit" class="btn" style="background: #48bb78; padding: 4px 8px; font-size: 12px;">
+                            ▶️
+                        </button>
+                    </form>
+                    {% endif %}
+                    
+                    <form method="post" action="{% url 'admin_subscription_delete' plan.id %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger" 
+                                style="padding: 4px 8px; font-size: 12px;"
+                                onclick="return confirm('Удалить тариф «{{ plan.name }}»?')">
+                            🗑️
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if search_query %}
+    <div style="margin-top: 20px; padding: 10px; background: #f0fff4; border: 1px solid #9ae6b4; border-radius: 4px;">
+        Найдено {{ plans|length }} результатов по запросу: "<strong>{{ search_query }}</strong>"
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <div style="text-align: center; padding: 40px; color: #718096;">
+        {% if search_query %}
+        <p>По запросу "{{ search_query }}" ничего не найдено</p>
+        <a href="{% url 'admin_subscriptions' %}" class="btn" style="margin-top: 15px;">Показать все</a>
+        {% else %}
+        <p>Тарифные планы не найдены</p>
+        <a href="{% url 'admin_subscription_create' %}" class="btn btn-success" style="margin-top: 15px;">Создать первый тариф</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

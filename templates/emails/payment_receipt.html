@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Чек об оплате</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .receipt { max-width: 600px; margin: 0 auto; border: 2px solid #333; padding: 20px; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .details { margin: 20px 0; }
+        .row { display: flex; justify-content: space-between; margin: 5px 0; }
+        .total { font-size: 20px; font-weight: bold; border-top: 2px solid #333; padding-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="receipt">
+        <div class="header">
+            <h2>Кассовый чек</h2>
+            <p>Киновечер</p>
+        </div>
+        
+        <div class="details">
+            <div class="row">
+                <span>Номер чека:</span>
+                <span>{{ payment.txn_uuid|slice:"-8:"|upper }}</span>
+            </div>
+            <div class="row">
+                <span>Дата:</span>
+                <span>{{ payment.paid_at|date:"d.m.Y H:i" }}</span>
+            </div>
+            {% if purchase %}
+            <div class="row">
+                <span>Товар:</span>
+                <span>{{ purchase.content.title }}</span>
+            </div>
+            {% elif subscription %}
+            <div class="row">
+                <span>Услуга:</span>
+                <span>Подписка {{ subscription.plan.name }}</span>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="row total">
+            <span>ИТОГО:</span>
+            <span>{{ payment.amount|floatformat:0 }} ₽</span>
+        </div>
+    </div>
+</body>
+</html>

@@ -51,3 +51,10 @@
 }
 
 .lane .card{ flex: 0 0 auto; }
+
+@media (max-width: 560px){
+  .my-section .cards{ grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .card img{ aspect-ratio: 2/3; height: auto; }
+}
+
+.my-section{ padding-inline: var(--container-pad); }

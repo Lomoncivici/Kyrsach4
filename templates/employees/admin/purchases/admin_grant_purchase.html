@@ -1,0 +1,158 @@
+{% extends 'employees/admin/admin_base.html' %}
+
+{% block title %}Выдать покупку - Управление контентом{% endblock %}
+{% block page_title %}🎁 Выдать покупку контента{% endblock %}
+
+{% block admin_nav %}
+{{ block.super }}
+<a href="{% url 'admin_user_purchases' %}" 
+   {% if request.resolver_match.url_name == 'admin_user_purchases' %}class="active"{% endif %}>
+   🛒 Покупки контента
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="content-box">
+    <h2>Выдача покупки контента пользователю</h2>
+    
+    <form method="post" style="max-width: 800px;">
+        {% csrf_token %}
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="user_id">Пользователь *</label>
+                <select id="user_id" name="user_id" required style="width: 100%; padding: 10px;">
+                    <option value="">Выберите пользователя...</option>
+                    {% for user in users %}
+                    <option value="{{ user.0 }}">{{ user.1 }} ({{ user.2 }})</option>
+                    {% endfor %}
+                </select>
+                <div style="font-size: 12px; color: #718096;">
+                    Только активные пользователи
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="content_id">Контент *</label>
+                <select id="content_id" name="content_id" required style="width: 100%; padding: 10px;"
+                        onchange="updateContentInfo()">
+                    <option value="">Выберите контент...</option>
+                    {% for content in content_list %}
+                    <option value="{{ content.0 }}" 
+                            data-price="{{ content.3 }}"
+                            data-type="{{ content.2 }}"
+                            data-year="{{ content.4 }}">
+                        {{ content.1 }} ({{ content.2 }}) - {{ content.3 }} ₽
+                    </option>
+                    {% endfor %}
+                </select>
+                <div style="font-size: 12px; color: #718096;">
+                    Только платный контент (цена > 0)
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="purchase_date">Дата покупки</label>
+                <input type="datetime-local" id="purchase_date" name="purchase_date" 
+                       value="{{ now }}">
+                <div style="font-size: 12px; color: #718096;">
+                    Если пусто, будет установлена текущая дата
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label class="checkbox-group">
+                <input type="checkbox" id="create_payment" name="create_payment" checked>
+                <span>Создать запись об оплате</span>
+            </label>
+            <div style="font-size: 12px; color: #718096; margin-left: 25px;">
+                Создаст запись в таблице payments со статусом "paid"
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <h3>Информация о выбранном контенте</h3>
+            <div style="background: #f0f4f8; padding: 15px; border-radius: 8px; margin-top: 10px;">
+                <div id="content_info" style="color: #718096;">
+                    Выберите контент для просмотра информации
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <button type="submit" class="btn btn-success">🎁 Выдать покупку</button>
+            <a href="{% url 'admin_user_purchases' %}" class="btn" style="background: #a0aec0; margin-left: 10px;">Отмена</a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const contentSelect = document.getElementById('content_id');
+    const contentInfo = document.getElementById('content_info');
+    const userSelect = document.getElementById('user_id');
+    const purchaseDateInput = document.getElementById('purchase_date');
+    const createPaymentCheckbox = document.getElementById('create_payment');
+
+    if (!purchaseDateInput.value) {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        purchaseDateInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+    }
+    
+    function updateContentInfo() {
+        const selectedContent = contentSelect.options[contentSelect.selectedIndex];
+        const price = selectedContent.dataset.price || '0.00';
+        const type = selectedContent.dataset.type || '';
+        const year = selectedContent.dataset.year || '';
+        
+        if (contentSelect.value) {
+            contentInfo.innerHTML = `
+                <strong>Название:</strong> ${selectedContent.text}<br>
+                <strong>Тип:</strong> ${type}<br>
+                <strong>Год:</strong> ${year}<br>
+                <strong>Цена:</strong> ${price} ₽<br>
+                <strong>Дата покупки:</strong> ${purchaseDateInput.value || 'текущая дата'}<br>
+                <strong>Оплата:</strong> ${createPaymentCheckbox.checked ? 'создать запись' : 'без записи'}
+            `;
+        } else {
+            contentInfo.textContent = 'Выберите контент для просмотра информации';
+        }
+    }
+
+    contentSelect.addEventListener('change', updateContentInfo);
+    purchaseDateInput.addEventListener('change', updateContentInfo);
+    createPaymentCheckbox.addEventListener('change', updateContentInfo);
+    
+    updateContentInfo();
+    
+    userSelect.focus();
+});
+
+document.querySelector('form').addEventListener('submit', function(e) {
+    const userSelect = document.getElementById('user_id');
+    const contentSelect = document.getElementById('content_id');
+    
+    if (!userSelect.value) {
+        alert('Выберите пользователя');
+        e.preventDefault();
+        return false;
+    }
+    
+    if (!contentSelect.value) {
+        alert('Выберите контент');
+        e.preventDefault();
+        return false;
+    }
+    
+    return true;
+});
+</script>
+{% endblock %}

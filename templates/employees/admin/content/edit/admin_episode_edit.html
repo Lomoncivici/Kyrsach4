@@ -1,0 +1,62 @@
+{% extends 'employees/admin/admin_base.html' %}
+
+{% block title %}Редактировать эпизод - Управление контентом{% endblock %}
+{% block page_title %}✏️ Редактировать эпизод{% endblock %}
+
+{% block content %}
+<div class="content-box">
+    <h2>Редактирование эпизода: {{ series_title }} - Сезон {{ season_num }} - Эпизод {{ episode_num }}</h2>
+    
+    {% if messages %}
+    <div class="alert alert-info">
+        {% for message in messages %}
+        {{ message }}
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <form method="post" style="max-width: 800px;">
+        {% csrf_token %}
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="episode_num">Номер эпизода *</label>
+                <input type="number" id="episode_num" name="episode_num" 
+                       value="{{ episode_num }}" min="1" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="duration">Длительность (секунды)</label>
+                <input type="number" id="duration" name="duration" 
+                       value="{{ duration_sec|default:0 }}" min="0">
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="title">Название эпизода *</label>
+            <input type="text" id="title" name="title" required 
+                   value="{{ title }}">
+        </div>
+        
+        <div class="form-group">
+            <label for="description">Описание (опционально)</label>
+            <textarea id="description" name="description" rows="3">{{ description|default:'' }}</textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="video_url">URL видео *</label>
+            <input type="text" id="video_url" name="video_url" required
+                   value="{{ video_url }}">
+            <div style="font-size: 12px; color: #718096; margin-top: 5px;">
+                Форматы: MP4, WebM, HLS (.m3u8), DASH (.mpd)
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <button type="submit" class="btn btn-success">Сохранить изменения</button>
+            <a href="{% url 'admin_season_detail' season_id %}" 
+               class="btn" style="background: #a0aec0; margin-left: 10px;">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

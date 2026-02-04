@@ -1,0 +1,383 @@
+.purchase-page .cards-container {
+  margin-top: 16px;
+}
+
+.purchase-page .cards-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  justify-content: center;
+}
+
+.purchase-page .purchase-card {
+  background: #12141c;
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.purchase-page .purchase-card img {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 14px 14px 0 0;
+}
+
+.purchase-page .card-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 8px 10px 4px;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.purchase-page .card-meta {
+  font-size: 12px;
+  color: #9ca3af;
+  margin: 0 10px 6px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2.4em;
+}
+
+.purchase-page .card-meta strong {
+  color: #fff;
+}
+
+.purchase-page .card-actions {
+  margin-top: auto;
+  padding: 0 10px 10px;
+  display: grid;
+  gap: 6px;
+}
+
+@media (max-width: 1200px) {
+  .purchase-page .cards-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+}
+
+@media (max-width: 992px) {
+  .purchase-page .cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .purchase-page .cards-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 0 12px;
+  }
+  
+  .purchase-page .purchase-card {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .purchase-page .cards-grid {
+    padding: 0 8px;
+    gap: 10px;
+  }
+  
+  .purchase-page .purchase-card {
+    border-radius: 12px;
+  }
+}
+
+@media (min-width: 1600px) {
+  .purchase-page .cards-grid {
+    grid-template-columns: repeat(4, minmax(200px, 1fr));
+    gap: 20px;
+  }
+}
+
+.subscription-plans {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+  align-items: stretch;
+}
+
+.subscription-plan-card {
+  background: linear-gradient(145deg, #1a1d2c, #12141c);
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid #2a2d3c;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 400px;
+}
+
+.subscription-plan-card:hover {
+  transform: translateY(-5px);
+  border-color: #3a3d4c;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.subscription-plan-card.current-plan {
+  border: 2px solid #00a8ff;
+  background: linear-gradient(145deg, #1a2d3c, #121a2c);
+}
+
+.plan-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  flex-shrink: 0;
+}
+
+.plan-name {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+  color: #fff;
+}
+
+.current-badge {
+  background: #00a8ff;
+  color: #000;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 4px 8px;
+  border-radius: 12px;
+}
+
+.plan-price {
+  margin-bottom: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.price-amount {
+  font-size: 36px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.price-currency {
+  font-size: 24px;
+  font-weight: 600;
+  color: #fff;
+  margin-left: 2px;
+}
+
+.price-period {
+  font-size: 14px;
+  color: #9ca3af;
+  margin-left: 5px;
+}
+
+.plan-features {
+  flex: 1;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.plan-features ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.plan-features li {
+  padding: 10px 0;
+  font-size: 14px;
+  color: #d1d5db;
+  border-bottom: 1px solid #2a2d3c;
+  display: flex;
+  align-items: flex-start;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+
+.plan-features li:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.plan-features li:before {
+  content: "✓";
+  color: #10b981;
+  margin-right: 10px;
+  font-weight: bold;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.plan-features li.feature-highlight {
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+.plan-actions {
+  margin-top: auto;
+  flex-shrink: 0;
+  padding-top: 10px;
+  border-top: 1px solid #2a2d3c;
+}
+
+.plan-info {
+  margin-top: 20px;
+  padding: 15px;
+  background: rgba(0, 168, 255, 0.1);
+  border-radius: 10px;
+  border-left: 4px solid #00a8ff;
+}
+
+.plan-info p {
+  margin: 5px 0;
+  font-size: 14px;
+}
+
+@media (max-width: 768px) {
+  .subscription-plans {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .subscription-plan-card {
+    padding: 15px;
+    min-height: 380px;
+  }
+  
+  .price-amount {
+    font-size: 32px;
+  }
+  
+  .plan-features li {
+    padding: 8px 0;
+    font-size: 13px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .subscription-plans {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .subscription-plan-card {
+    min-height: 420px;
+  }
+}
+
+.subscription-plan-card .plan-features {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.subscription-plan-card .plan-features::-webkit-scrollbar {
+  width: 4px;
+}
+
+.subscription-plan-card .plan-features::-webkit-scrollbar-track {
+  background: #1a1d2c;
+  border-radius: 2px;
+}
+
+.subscription-plan-card .plan-features::-webkit-scrollbar-thumb {
+  background: #3a3d4c;
+  border-radius: 2px;
+}
+
+.is-valid {
+  border-color: #10b981 !important;
+  background-color: rgba(16, 185, 129, 0.05) !important;
+}
+
+.is-invalid {
+  border-color: #ff6b6b !important;
+  background-color: rgba(255, 107, 107, 0.05) !important;
+}
+
+.error-message {
+  color: #ff6b6b;
+  font-size: 12px;
+  margin-top: 5px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: rgba(255, 107, 107, 0.1);
+  border-left: 3px solid #ff6b6b;
+  display: none;
+}
+
+.success-message {
+  color: #10b981;
+  font-size: 12px;
+  margin-top: 5px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: rgba(16, 185, 129, 0.1);
+  border-left: 3px solid #10b981;
+  display: none;
+}
+
+.validation-icon {
+  position: absolute;
+  right: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+}
+
+.valid-icon {
+  color: #10b981;
+  display: none;
+}
+
+.invalid-icon {
+  color: #ff6b6b;
+  display: none;
+}
+
+.input-with-icon {
+  position: relative;
+}
+
+.card-type-indicator {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 20px;
+  display: none;
+}
+
+.visa-icon { 
+  color: #1a1f71; 
+  display: inline-block;
+}
+
+.mastercard-icon { 
+  color: #eb001b; 
+  display: inline-block;
+}
+
+.mir-icon { 
+  color: #1e5aaa; 
+  display: inline-block;
+}

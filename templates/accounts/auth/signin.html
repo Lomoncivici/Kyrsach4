@@ -19,6 +19,9 @@
     <div class="muted mt-2">
       Нет аккаунта? <a href="/register">Создать</a>
     </div>
+    <div class="muted mt-2">
+      Забыли пароль? <a href="{% url 'forgot_password_request' %}">Восстановить</a>
+    </div>
     {% if messages %}
         <div class="messages">
             {% for m in messages %}

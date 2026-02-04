@@ -1,0 +1,188 @@
+{% extends 'employees/admin/admin_base.html' %}
+
+{% block title %}Редактировать контент - Управление контентом{% endblock %}
+{% block page_title %}✏️ Редактировать контент{% endblock %}
+
+{% block content %}
+<div class="content-box">
+    <h2>Редактирование контента</h2>
+    
+    {% if content %}
+    <form method="post" style="max-width: 800px;">
+        {% csrf_token %}
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="title">Название *</label>
+                <input type="text" id="title" name="title" value="{{ content.1 }}" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="type">Тип контента *</label>
+                <select id="type" name="type" required onchange="toggleVideoField()">
+                    <option value="movie" {% if content.2 == 'movie' %}selected{% endif %}>Фильм</option>
+                    <option value="series" {% if content.2 == 'series' %}selected{% endif %}>Сериал</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="release_year">Год выпуска *</label>
+                <input type="number" id="release_year" name="release_year" 
+                       value="{{ content.3 }}" required min="1900" max="2030">
+            </div>
+            
+            <div class="form-group">
+                <label for="price">Цена (₽)</label>
+                <input type="text" id="price" name="price" 
+                       value="{{ content.6 }}" 
+                       pattern="[0-9]+([\.,][0-9]{1,2})?" 
+                       title="Цена в формате 299.99 или 299,99"
+                       placeholder="0.00">
+                <div style="font-size: 12px; color: #718096;">
+                    Формат: 299.99 или 299,99
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="description">Описание *</label>
+            <textarea id="description" name="description" required>{{ content.4 }}</textarea>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group" id="video_field" {% if content.2 == 'movie' %}style="display: block;"{% else %}style="display: none;"{% endif %}>
+                <label for="video_url">URL видео (только для фильмов) *</label>
+                <input type="text" id="video_url" name="video_url" 
+                       value="{{ video_url }}" 
+                       {% if content.2 == 'movie' %}required{% endif %}
+                       placeholder="https://example.com/video.mp4">
+                <div style="font-size: 12px; color: #718096;">
+                    Обязательно для фильмов. Форматы: MP4, WebM, HLS, DASH
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="cover_image_url">URL постера</label>
+                <input type="text" id="cover_image_url" name="cover_image_url" 
+                       value="{{ cover_image_url }}" 
+                       placeholder="https://example.com/poster.jpg">
+                {% if cover_image_url %}
+                <div style="margin-top: 5px;">
+                    <img src="{{ cover_image_url }}" alt="Текущий постер" style="max-width: 100px; max-height: 100px; border: 1px solid #e2e8f0; border-radius: 4px;">
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="trailer_url">URL трейлера</label>
+                <input type="text" id="trailer_url" name="trailer_url" 
+                       value="{{ trailer_url }}" 
+                       placeholder="https://example.com/trailer.mp4">
+            </div>
+            
+            <div class="form-group">
+                <label for="cover_image_wide_url">URL широкого постера</label>
+                <input type="text" id="cover_image_wide_url" name="cover_image_wide_url" 
+                       value="{{ cover_image_wide_url }}" 
+                       placeholder="https://example.com/wide-poster.jpg">
+                {% if cover_image_wide_url %}
+                <div style="margin-top: 5px;">
+                    <img src="{{ cover_image_wide_url }}" alt="Текущий широкий постер" style="max-width: 200px; max-height: 100px; border: 1px solid #e2e8f0; border-radius: 4px;">
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>Жанры</label>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px;">
+                {% for genre in all_genres %}
+                <label class="checkbox-group">
+                    <input type="checkbox" name="genres" value="{{ genre.0 }}" 
+                           {% if genre.0 in selected_genres %}checked{% endif %}>
+                    <span>{{ genre.1 }}</span>
+                </label>
+                {% empty %}
+                <p style="color: #718096;">Нет доступных жанров</p>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label class="checkbox-group">
+                <input type="checkbox" id="is_free" name="is_free" 
+                       {% if content.5 %}checked{% endif %}>
+                <span>Бесплатный контент</span>
+            </label>
+        </div>
+        
+        <div class="form-group">
+            <button type="submit" class="btn btn-success">Сохранить изменения</button>
+            <a href="{% url 'admin_content_list' %}" class="btn" style="background: #a0aec0; margin-left: 10px;">Отмена</a>
+        </div>
+    </form>
+    {% else %}
+    <div class="alert alert-error">
+        Контент не найден
+    </div>
+    <a href="{% url 'admin_content_list' %}" class="btn">Вернуться к списку</a>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const priceInput = document.getElementById('price');
+    const freeCheckbox = document.getElementById('is_free');
+    
+    if (freeCheckbox.checked) {
+        priceInput.disabled = true;
+        priceInput.value = '0.00';
+    }
+    
+    freeCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            priceInput.value = '0.00';
+            priceInput.disabled = true;
+        } else {
+            priceInput.disabled = false;
+        }
+    });
+    
+    priceInput.addEventListener('input', function() {
+        const val = this.value.replace(',', '.');
+        if (parseFloat(val) === 0 || this.value === '') {
+            freeCheckbox.checked = true;
+        } else {
+            freeCheckbox.checked = false;
+        }
+    });
+    
+    priceInput.addEventListener('blur', function() {
+        let val = this.value.replace(',', '.');
+        if (val && !isNaN(parseFloat(val))) {
+            val = parseFloat(val).toFixed(2);
+            this.value = val;
+        }
+    });
+});
+
+function toggleVideoField() {
+    const typeSelect = document.getElementById('type');
+    const videoField = document.getElementById('video_field');
+    const videoInput = document.getElementById('video_url');
+    
+    if (typeSelect.value === 'movie') {
+        videoField.style.display = 'block';
+        videoInput.required = true;
+    } else {
+        videoField.style.display = 'none';
+        videoInput.required = false;
+        videoInput.value = '';
+    }
+}
+</script>
+{% endblock %}

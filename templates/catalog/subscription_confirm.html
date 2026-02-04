@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Оформление подписки - {{ plan.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/purchase_confirm.css' %}">
+{% endblock %}
+
+{% if current_subscription %}
+<input type="hidden" name="extend_after_current" value="true">
+{% else %}
+<input type="hidden" name="extend_after_current" value="false">
+{% endif %}
+
+{% block content %}
+  <div class="container">
+    <div class="purchase-header">
+      <h1>Оформление подписки</h1>
+      <p class="muted">Оплата защищена. Данные карты обрабатываются безопасно.</p>
+    </div>
+
+    {% if messages %}
+      <div class="messages">
+        {% for m in messages %}
+          <div class="alert {% if m.tags %}alert-{{ m.tags }}{% endif %}">{{ m }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="purchase-content">
+      <div class="content-info">
+        <div class="content-card">
+          <div class="subscription-icon" style="text-align: center; padding: 20px;">
+            <span style="font-size: 80px;">📺</span>
+          </div>
+          
+          <div class="content-details">
+            <h2>{{ plan.name }}</h2>
+            <div class="content-meta">
+              <span class="content-type">Подписка</span>
+              <span class="content-year">{{ plan.period_months }} месяцев</span>
+            </div>
+            
+            <div class="subscription-period">
+                <h4>Период подписки:</h4>
+                
+                {% if current_subscription %}
+                    <div class="alert alert-info" style="background: linear-gradient(135deg, #e8f4ff 0%, #d4e7ff 100%); border-left: 4px solid #00a8ff; padding: 15px; margin: 15px 0; border-radius: 8px;">
+                        <p><strong>⚠️ У вас уже есть активная подписка</strong></p>
+                        <p>Текущая подписка: <strong>{{ current_subscription.plan.name }}</strong></p>
+                        <p>Действует до: <strong>{{ current_subscription.expires_at|date:"d.m.Y" }}</strong></p>
+                        <p>Новая подписка начнется: <strong>{{ new_subscription_start|date:"d.m.Y" }}</strong></p>
+                    </div>
+                {% else %}
+                    <p>Подписка начнется: <strong>{{ new_subscription_start|date:"d.m.Y" }}</strong></p>
+                    <p>Подписка закончится: <strong>{{ new_subscription_expiry|date:"d.m.Y" }}</strong></p>
+                {% endif %}
+            </div>
+            
+            <div class="content-description">
+              <h4>Что включено:</h4>
+              <ul style="list-style: none; padding-left: 0;">
+                <li>✓ Доступ ко всему контенту по подписке (0.01-0.99 ₽)</li>
+                <li>✓ Бесплатный контент всегда доступен</li>
+                <li>✓ Платный контент (от 1 ₽) покупается отдельно</li>
+                <li>✓ Автопродление по истечении срока</li>
+                <li>✓ Отмена в любой момент в течение 14 дней</li>
+              </ul>
+            </div>
+            
+            <div class="content-price">
+              <div class="price-label">Стоимость подписки:</div>
+              <div class="price-amount">{{ plan.price|floatformat:0 }} ₽</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="purchase-benefits">
+          <h4>Условия отмены:</h4>
+          <ul style="list-style: none; padding-left: 0;">
+            <li>❗ Отмена возможна в течение 14 дней с начала подписки</li>
+            <li>❗ После 14 дней отмена невозможна до конца периода</li>
+            <li>❗ Возврат средств в течение 14 дней при отмене</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="payment-form">
+        <div class="payment-card">
+          <h3>Способ оплаты</h3>
+          
+          <form method="post" action="{% url 'catalog:process_subscription_payment' plan.code %}" id="payment-form">
+            {% csrf_token %}
+            
+            {% if current_subscription %}
+            <input type="hidden" name="extend_after_current" id="extendHidden" value="true">
+            {% endif %}
+            
+            <div class="form-section">
+              <label for="card_number">Номер карты</label>
+              <div class="input-with-icon">
+                <input
+                    type="text"
+                    id="card_number"
+                    inputmode="numeric"
+                    autocomplete="cc-number"
+                    maxlength="19"
+                    name="card_number"
+                    placeholder="4242 4242 4242 4242"
+                    class="form-input">
+                <span class="input-icon">💳</span>
+                <span class="card-type-indicator">
+                  <span class="visa-icon" style="display: none;">VISA</span>
+                  <span class="mastercard-icon" style="display: none;">MC</span>
+                  <span class="mir-icon" style="display: none;">МИР</span>
+                </span>
+              </div>
+              <div class="card-icons">
+                <span class="card-icon">visa</span>
+                <span class="card-icon">mastercard</span>
+                <span class="card-icon">mir</span>
+              </div>
+              <div id="card-error" class="error-message" style="display: none;"></div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-section">
+                <label for="expiry_date">Срок действия</label>
+                <div class="input-with-icon">
+                    <input type="text" 
+                      type="text"
+                      id="expiry_date"
+                      name="expiry_date"
+                      inputmode="numeric"
+                      autocomplete="cc-exp"
+                      maxlength="5"
+                      placeholder="MM/YY"
+                      class="form-input"
+                      required>
+                </div>
+              </div>
+              
+              <div class="form-section">
+                <label for="cvc">CVC/CVV</label>
+                <div class="input-with-icon">
+                  <input type="password" 
+                    id="cvc" 
+                    name="cvc" 
+                    placeholder="123"
+                    maxlength="3"
+                    inputmode="numeric"
+                    pattern="[0-9]{3}"
+                    required
+                    autocomplete="cc-csc">
+                  <span class="input-icon">🔒</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <label for="cardholder_name">Имя владельца карты</label>
+              <div class="input-with-icon">
+                <input type="text" 
+                     id="cardholder_name"
+                     autocomplete="cc-name"
+                     name="cardholder_name"
+                     placeholder="IVAN IVANOV"
+                     required>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <label for="email">Email для чека</label>
+              <div class="input-with-icon">
+                <input type="email" 
+                     id="email" 
+                     name="email" 
+                     value="{{ user.email|default:'' }}"
+                     placeholder="your@email.com"
+                     required>
+              </div>
+            </div>
+
+            <div class="payment-summary">
+              <div class="summary-row">
+                <span>Стоимость подписки ({{ plan.period_months }} мес.):</span>
+                <span>{{ plan.price|floatformat:0 }} ₽</span>
+              </div>
+              <div class="summary-row">
+                <span>Комиссия:</span>
+                <span>0 ₽</span>
+              </div>
+              <div class="summary-row total">
+                <span>Итого к оплате:</span>
+                <span class="total-amount">{{ plan.price|floatformat:0 }} ₽</span>
+              </div>
+            </div>
+
+            <div class="payment-actions">
+              <button type="submit" class="btn btn-primary btn-lg btn-pay">
+                <span class="btn-icon">💳</span>
+                Оплатить {{ plan.price|floatformat:0 }} ₽
+              </button>
+              
+              <a href="{% url 'catalog:subscribe' %}" class="btn btn-outline btn-lg">
+                Отмена
+              </a>
+            </div>
+
+            <div class="payment-security">
+              <p>✅ Данные карты не сохраняются на сервере</p>
+              <p>✅ Гарантия возврата в течение 14 дней</p>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% block extra_js %}
+    <script src="{% static 'js/payment_validation.js' %}"></script>
+    <script src="{% static 'js/subscription_logic.js' %}"></script>
+  {% endblock %}
+{% endblock %}

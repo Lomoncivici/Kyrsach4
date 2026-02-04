@@ -5,10 +5,66 @@ from pathlib import Path
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-SECRET_KEY = os.getenv("DJANGO_SECRET", "dev-secret-key-change")
 DEBUG = True
-ALLOWED_HOSTS = []
+
+SECRET_KEY = os.getenv("DJANGO_SECRET")
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
+EMAIL_HOST_USER = 'kinovecheronline@gmail.com'
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose'
+        },
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': 'debug.log',
+            'formatter': 'verbose'
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'employees': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'employees.backends': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'employees.views': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -17,6 +73,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'employees',
     'accounts',
     'catalog',
     'cinemaapp.apps.CinemaAppConfig',
@@ -36,7 +93,10 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 20,
 }
 
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+
 MIDDLEWARE = [
+    'cinema_site.middleware.UserTypeMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -45,6 +105,18 @@ MIDDLEWARE = [
     'cinema_site.middleware.SetPgAppUser',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
+
+PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.Argon2PasswordHasher',
+    'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
 ]
 
 ROOT_URLCONF = 'cinema_site.urls'
@@ -68,23 +140,39 @@ WSGI_APPLICATION = 'cinema_site.wsgi.application'
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("PG_DB", "OnlineMovies"),
-        "USER": os.getenv("PG_USER", "postgres"),
-        "PASSWORD": os.getenv("PG_PASSWORD", "123456789"),
-        "HOST": os.getenv("PG_HOST", "localhost"),
-        "PORT": os.getenv("PG_PORT", "5432"),
+        "NAME": os.getenv("PG_DB",),
+        "USER": os.getenv("PG_USER",),
+        "PASSWORD": os.getenv("PG_PASSWORD"),
+        "HOST": os.getenv("PG_HOST",),
+        "PORT": os.getenv("PG_PORT",),
         "OPTIONS": {
             "options": "-c search_path=public,cinema"
         }
     }
 }
 
+AUTH_USER_MODEL = 'auth.User'
+AUTHENTICATION_BACKENDS = [
+    'employees.backends.EmployeeBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
 AUTH_PASSWORD_VALIDATORS = []
+
+LOGIN_URL = '/accounts/login/' 
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
 
 LANGUAGE_CODE = 'ru-ru'
 TIME_ZONE = 'Europe/Moscow'
 USE_I18N = True
 USE_TZ = True
+
+BANK_SERVICE_URL = os.getenv("BANK_SERVICE_URL")
+BANK_SERVICE_TIMEOUT = 30
+
+if DEBUG:
+    import warnings
+    warnings.filterwarnings("ignore", message="Unverified HTTPS request")
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [ BASE_DIR / 'static' ]

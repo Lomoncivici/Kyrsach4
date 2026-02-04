@@ -1,0 +1,249 @@
+{% extends 'employees/admin/admin_base.html' %}
+
+{% block title %}Пользовательские подписки - Подписки{% endblock %}
+{% block page_title %}👥 Пользовательские подписки{% endblock %}
+
+{% block admin_nav %}
+{{ block.super }}
+<a href="{% url 'admin_subscriptions' %}" 
+   {% if request.resolver_match.url_name == 'admin_subscriptions' %}class="active"{% endif %}>
+   💰 Тарифные планы
+</a>
+<a href="{% url 'admin_payments' %}" 
+   {% if request.resolver_match.url_name == 'admin_payments' %}class="active"{% endif %}>
+   💳 Платежи
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="content-box">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin: 0;">Подписки пользователей</h2>
+        <div>
+            <a href="{% url 'admin_grant_subscription' %}" class="btn btn-success">🎁 Выдать подписку</a>
+            <a href="{% url 'export_subscriptions' %}?type=user_subs" class="btn" style="background: #4a5568;">📊 Экспорт</a>
+        </div>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <div style="font-size: 14px; color: #718096;">Всего подписок</div>
+            <div style="font-size: 24px; font-weight: bold;">{{ stats.0|default:0 }}</div>
+        </div>
+        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <div style="font-size: 14px; color: #718096;">Активных</div>
+            <div style="font-size: 24px; font-weight: bold; color: #48bb78;">{{ stats.1|default:0 }}</div>
+        </div>
+        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <div style="font-size: 14px; color: #718096;">Истекших</div>
+            <div style="font-size: 24px; font-weight: bold; color: #e53e3e;">{{ stats.2|default:0 }}</div>
+        </div>
+        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <div style="font-size: 14px; color: #718096;">Будущих</div>
+            <div style="font-size: 24px; font-weight: bold; color: #ed8936;">{{ stats.4|default:0 }}</div>
+        </div>
+    </div>
+    
+    <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <form method="get" id="filterForm" style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+            <input type="text" name="search" value="{{ search_query }}" 
+                   placeholder="Поиск по логину или email..." 
+                   style="flex: 1; padding: 10px; border: 1px solid #e2e8f0; border-radius: 4px;">
+            <button type="submit" class="btn" style="background: #4299e1;">🔍 Поиск</button>
+            <button type="button" onclick="clearFilters()" class="btn" style="background: #a0aec0;">❌ Очистить</button>
+        </form>
+        
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <div>
+                <select name="status" id="statusFilter" onchange="submitForm()" style="padding: 6px 12px; border: 1px solid #e2e8f0; border-radius: 4px;">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>Все статусы</option>
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Активные</option>
+                    <option value="expired" {% if status_filter == 'expired' %}selected{% endif %}>Истекшие</option>
+                    <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Отмененные</option>
+                    <option value="future" {% if status_filter == 'future' %}selected{% endif %}>Будущие</option>
+                </select>
+            </div>
+            
+            <div>
+                <select name="plan" id="planFilter" onchange="submitForm()" style="padding: 6px 12px; border: 1px solid #e2e8f0; border-radius: 4px;">
+                    <option value="all" {% if plan_filter == 'all' %}selected{% endif %}>Все тарифы</option>
+                    {% for plan in active_plans %}
+                    <option value="{{ plan.0 }}" {% if plan_filter == plan.0 %}selected{% endif %}>{{ plan.1 }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <input type="date" name="date_from" id="dateFrom" value="{{ date_from }}" 
+                       placeholder="Дата с" style="padding: 6px 12px; border: 1px solid #e2e8f0; border-radius: 4px;"
+                       onchange="submitForm()">
+            </div>
+            <div>
+                <input type="date" name="date_to" id="dateTo" value="{{ date_to }}" 
+                       placeholder="Дата по" style="padding: 6px 12px; border: 1px solid #e2e8f0; border-radius: 4px;"
+                       onchange="submitForm()">
+            </div>
+        </div>
+    </div>
+    
+    {% if subscriptions %}
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Пользователь</th>
+                    <th>Тариф</th>
+                    <th>Статус</th>
+                    <th>Начало</th>
+                    <th>Окончание</th>
+                    <th>Оплата</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sub in subscriptions %}
+                <tr>
+                    <td>
+                        <strong>{{ sub.user_login }}</strong>
+                        <div style="font-size: 12px; color: #718096;">
+                            {{ sub.user_email|truncatechars:20 }}
+                        </div>
+                        <div style="font-size: 11px; font-family: monospace; color: #a0aec0;">
+                            ID: {{ sub.user_id|slice:":8" }}...
+                        </div>
+                    </td>
+                    <td>
+                        {{ sub.plan_name }}
+                        <div style="font-size: 12px; color: #718096;">
+                            {{ sub.plan_code }}
+                        </div>
+                    </td>
+                    <td>
+                        {% if sub.actual_status == 'active' %}
+                        <span class="badge" style="background: #48bb78;">Активна</span>
+                        {% elif sub.actual_status == 'expired' %}
+                        <span class="badge" style="background: #e53e3e;">Истекла</span>
+                        {% elif sub.actual_status == 'cancelled' %}
+                        <span class="badge" style="background: #a0aec0;">Отменена</span>
+                        {% elif sub.actual_status == 'future' %}
+                        <span class="badge" style="background: #ed8936;">Будущая</span>
+                        {% else %}
+                        <span class="badge" style="background: #a0aec0;">{{ sub.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {{ sub.started_at|date:"d.m.Y" }}
+                    </td>
+                    <td>
+                        {% if sub.expires_at %}
+                        {{ sub.expires_at|date:"d.m.Y" }}
+                        {% if sub.actual_status == 'active' %}
+                        <div style="font-size: 12px; color: #718096;">
+                            {{ sub.expires_at|timeuntil }} осталось
+                        </div>
+                        {% endif %}
+                        {% else %}
+                        <span style="color: #a0aec0;">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if sub.payment_amount %}
+                        <strong>{{ sub.payment_amount }} ₽</strong>
+                        {% if sub.paid_at %}
+                        <div style="font-size: 12px; color: #718096;">
+                            {{ sub.paid_at|date:"d.m.Y" }}
+                        </div>
+                        {% endif %}
+                        {% else %}
+                        <span style="color: #a0aec0;">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="actions">
+                        <a href="{% url 'admin_user_subscription_edit' sub.id %}" class="btn" style="padding: 4px 8px; font-size: 12px;">✏️</a>
+                        
+                        <form method="post" action="{% url 'admin_user_subscription_extend' sub.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn" style="background: #4299e1; padding: 4px 8px; font-size: 12px;"
+                                    onclick="return confirm('Продлить подписку на 1 месяц?')">
+                                ⏳ +1 мес
+                            </button>
+                        </form>
+                        
+                        <form method="post" action="{% url 'admin_user_subscription_delete' sub.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger" 
+                                    style="padding: 4px 8px; font-size: 12px;"
+                                    onclick="return confirm('Удалить подписку пользователя {{ sub.user_login }}?')">
+                                🗑️
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {% if search_query or status_filter != 'all' or plan_filter != 'all' or date_from or date_to %}
+    <div style="margin-top: 20px; padding: 10px; background: #f0fff4; border: 1px solid #9ae6b4; border-radius: 4px;">
+        Найдено {{ subscriptions|length }} подписок
+        {% if search_query %}по запросу: "<strong>{{ search_query }}</strong>"{% endif %}
+        {% if status_filter != 'all' %}статус: <strong>{{ status_filter }}</strong>{% endif %}
+        {% if plan_filter != 'all' %}тариф: <strong>{{ plan_filter }}</strong>{% endif %}
+        {% if date_from %}с {{ date_from }}{% endif %}
+        {% if date_to %}по {{ date_to }}{% endif %}
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <div style="text-align: center; padding: 40px; color: #718096;">
+        {% if search_query or status_filter != 'all' or plan_filter != 'all' or date_from or date_to %}
+        <p>По заданным фильтрам ничего не найдено</p>
+        <a href="{% url 'admin_user_subscriptions' %}" class="btn" style="margin-top: 15px;">Показать все подписки</a>
+        {% else %}
+        <p>Подписки не найдены</p>
+        <a href="{% url 'admin_grant_subscription' %}" class="btn btn-success" style="margin-top: 15px;">Выдать первую подписку</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    document.getElementById('statusFilter').value = urlParams.get('status') || 'all';
+    document.getElementById('planFilter').value = urlParams.get('plan') || 'all';
+    document.getElementById('dateFrom').value = urlParams.get('date_from') || '';
+    document.getElementById('dateTo').value = urlParams.get('date_to') || '';
+    
+    const searchInput = document.querySelector('input[name="search"]');
+    searchInput.value = urlParams.get('search') || '';
+});
+
+function submitForm() {
+    const form = document.getElementById('filterForm');
+    const formData = new FormData(form);
+    
+    const searchValue = document.querySelector('input[name="search"]').value;
+    const statusValue = document.getElementById('statusFilter').value;
+    const planValue = document.getElementById('planFilter').value;
+    const dateFromValue = document.getElementById('dateFrom').value;
+    const dateToValue = document.getElementById('dateTo').value;
+    
+
+    const params = new URLSearchParams();
+    
+    if (searchValue) params.set('search', searchValue);
+    if (statusValue && statusValue !== 'all') params.set('status', statusValue);
+    if (planValue && planValue !== 'all') params.set('plan', planValue);
+    if (dateFromValue) params.set('date_from', dateFromValue);
+    if (dateToValue) params.set('date_to', dateToValue);
+    
+    window.location.href = '{% url "admin_user_subscriptions" %}' + (params.toString() ? '?' + params.toString() : '');
+}
+
+function clearFilters() {
+    window.location.href = '{% url "admin_user_subscriptions" %}';
+}
+</script>
+{% endblock %}

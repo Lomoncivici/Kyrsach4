@@ -11,9 +11,9 @@ class IsSupport(BasePermission):
     def has_permission(self, request, view):
         return _in_group(request.user, "support") or IsAdmin().has_permission(request, view)
 
-class IsFinance(BasePermission):
+class IsAnalyst(BasePermission):
     def has_permission(self, request, view):
-        return _in_group(request.user, "finance") or IsAdmin().has_permission(request, view)
+        return _in_group(request.user, "Analyst") or IsAdmin().has_permission(request, view)
 
 class ReadOnly(BasePermission):
     def has_permission(self, request, view):

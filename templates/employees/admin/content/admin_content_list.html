@@ -1,0 +1,136 @@
+{% extends 'employees/admin/admin_base.html' %}
+
+{% block title %}Весь контент - Управление контентом{% endblock %}
+{% block page_title %}🎬 Весь контент ({{ total_count }}){% endblock %}
+
+{% block content %}
+<div class="content-box">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin: 0;">Список контента</h2>
+        <a href="{% url 'admin_content_add' %}" class="btn btn-success">➕ Добавить контент</a>
+    </div>
+
+    <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <form method="get" style="display: flex; gap: 10px; align-items: center;">
+            <input type="text" name="search" value="{{ search_query }}" 
+                   placeholder="Поиск по названию или описанию..." 
+                   style="flex: 1; padding: 10px; border: 1px solid #e2e8f0; border-radius: 4px;">
+            <button type="submit" class="btn" style="background: #4299e1;">🔍 Поиск</button>
+            {% if search_query %}
+            <a href="{% url 'admin_content_list' %}" class="btn" style="background: #a0aec0;">❌ Очистить</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+        <a href="?search={{ search_query }}&type=all" 
+           class="btn {% if not current_type or current_type == 'all' %}active{% endif %}" 
+           style="background: #4a5568;">Все</a>
+        <a href="?search={{ search_query }}&type=movie" 
+           class="btn {% if current_type == 'movie' %}active{% endif %}" 
+           style="background: #4299e1;">Фильмы</a>
+        <a href="?search={{ search_query }}&type=series" 
+           class="btn {% if current_type == 'series' %}active{% endif %}" 
+           style="background: #ed8936;">Сериалы</a>
+        <a href="?search={{ search_query }}&free=true" 
+           class="btn {% if current_free == 'true' %}active{% endif %}" 
+           style="background: #48bb78;">Бесплатные</a>
+        <a href="?search={{ search_query }}&free=false" 
+           class="btn {% if current_free == 'false' %}active{% endif %}" 
+           style="background: #805ad5;">Платные</a>
+    </div>
+    
+    {% if content_list %}
+    <table>
+        <thead>
+            <tr>
+                <th>Постер</th>
+                <th>Название</th>
+                <th>Тип</th>
+                <th>Год</th>
+                <th>Жанры</th>
+                <th>Цена</th>
+                <th>Добавлен</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for content in content_list %}
+            <tr>
+                <td>
+                    {% if content.cover_url %}
+                    <img src="{{ content.cover_url }}" alt="Постер" 
+                         style="width: 60px; height: 80px; object-fit: cover; border-radius: 4px;">
+                    {% else %}
+                    <div style="width: 60px; height: 80px; background: #e2e8f0; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
+                        <span style="color: #a0aec0; font-size: 12px;">Нет</span>
+                    </div>
+                    {% endif %}
+                </td>
+                <td>
+                    <strong>{{ content.title }}</strong>
+                    {% if content.description %}
+                    <div style="font-size: 12px; color: #718096; margin-top: 4px;">
+                        {{ content.description|truncatechars:60 }}
+                    </div>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if content.type == 'movie' %}
+                    <span class="badge badge-movie">Фильм</span>
+                    {% else %}
+                    <span class="badge badge-series">Сериал</span>
+                    {% endif %}
+                </td>
+                <td>{{ content.release_year }}</td>
+                <td>
+                    {% if content.genres %}
+                    {{ content.genres|truncatechars:30 }}
+                    {% else %}
+                    <span style="color: #a0aec0;">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if content.is_free %}
+                    <span class="badge badge-free">Бесплатно</span>
+                    {% else %}
+                    <span class="badge badge-paid">{{ content.price }} ₽</span>
+                    {% endif %}
+                </td>
+                <td>{{ content.created_at|date:"d.m.Y" }}</td>
+                <td class="actions">
+                    <a href="{% url 'admin_content_edit' content.id %}" class="btn" style="padding: 4px 8px; font-size: 12px;">✏️</a>
+                    <form method="post" action="{% url 'admin_content_delete' content.id %}" 
+                          style="display: inline; margin-left: 5px;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger" 
+                                style="padding: 4px 8px; font-size: 12px;"
+                                onclick="return confirm('Удалить контент «{{ content.title }}»?')">
+                            🗑️
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    {% if search_query %}
+    <div style="margin-top: 20px; padding: 10px; background: #f0fff4; border: 1px solid #9ae6b4; border-radius: 4px;">
+        Найдено {{ total_count }} результатов по запросу: "<strong>{{ search_query }}</strong>"
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div style="text-align: center; padding: 40px; color: #718096;">
+        {% if search_query %}
+        <p>По запросу "{{ search_query }}" ничего не найдено</p>
+        <a href="{% url 'admin_content_list' %}" class="btn" style="margin-top: 15px;">Показать все</a>
+        {% else %}
+        <p>Контент не найден</p>
+        <a href="{% url 'admin_content_add' %}" class="btn btn-success" style="margin-top: 15px;">Добавить первый контент</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

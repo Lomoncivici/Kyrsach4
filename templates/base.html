@@ -1,11 +1,4 @@
-<script>
-  window.IS_AUTH = {{ request.user.is_authenticated|yesno:"true,false" }};
-</script>
 {% load static %}
-{% load static %}
-{% block page_bg %}
-  <div class="page-bg" style="--bg: url('{% static "img/BackFon.png" %}');"></div>
-{% endblock %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -13,13 +6,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}Онлайн‑кинотеатр{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  
+  {% block extra_css %}{% endblock %}
+  
+  <script>
+    window.IS_AUTH = {{ request.user.is_authenticated|yesno:"true,false" }};
+  </script>
 </head>
+
 <body class="bg-dark">
+  {% block page_bg %}
+    <div class="page-bg" style="--bg: url('{% static "img/BackFon.png" %}');"></div>
+  {% endblock %}
+  
   <div class="bg-overlay"></div>
   {% include '_partials/hotbar.html' %}
+  
   <main id="content" class="page-content">
     {% block content %}{% endblock %}
   </main>
+  
   <script src="{% static 'js/app.js' %}"></script>
   {% block scripts %}{% endblock %}
 </body>

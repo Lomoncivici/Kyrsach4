@@ -1,0 +1,211 @@
+{% extends 'employees/admin/admin_base.html' %}
+
+{% block title %}Редактировать пользователя - Управление пользователями{% endblock %}
+{% block page_title %}✏️ Редактировать пользователя: {{ user.login }}{% endblock %}
+
+{% block admin_nav %}
+{{ block.super }}
+<a href="{% url 'admin_users_list' %}" 
+   {% if request.resolver_match.url_name == 'admin_users_list' %}class="active"{% endif %}>
+   👥 Пользователи
+</a>
+<a href="{% url 'admin_employees_list' %}" 
+   {% if request.resolver_match.url_name == 'admin_employees_list' %}class="active"{% endif %}>
+   👨‍💼 Сотрудники
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="content-box">
+    <h2>Редактирование пользователя: {{ user.login }}</h2>
+    
+    <div style="background: #f7fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <h3 style="margin-top: 0;">Статистика пользователя</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+            <div style="text-align: center;">
+                <div style="font-size: 24px; font-weight: bold; color: #4a5568;">{{ user_stats.0 }}</div>
+                <div style="font-size: 14px; color: #718096;">Покупки</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 24px; font-weight: bold; color: #4a5568;">{{ user_stats.1 }}</div>
+                <div style="font-size: 14px; color: #718096;">Подписки</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 24px; font-weight: bold; color: #4a5568;">{{ user_stats.2 }}</div>
+                <div style="font-size: 14px; color: #718096;">Просмотры</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 24px; font-weight: bold; color: #4a5568;">{{ user_stats.3 }}</div>
+                <div style="font-size: 14px; color: #718096;">Избранное</div>
+            </div>
+        </div>
+    </div>
+    
+    <form method="post" style="max-width: 800px;">
+        {% csrf_token %}
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="email">Email *</label>
+                <input type="email" id="email" name="email" required 
+                       value="{{ user.email }}">
+                <div style="font-size: 12px; color: #718096;">
+                    Уникальный email пользователя
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="login">Логин *</label>
+                <input type="text" id="login" name="login" required 
+                       value="{{ user.login }}">
+                <div style="font-size: 12px; color: #718096;">
+                    Уникальный логин (5-32 символа)
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Новый пароль (оставьте пустым, если не нужно менять)</label>
+            <input type="password" id="password" name="password" 
+                   placeholder="Минимум 6 символов">
+            <div style="font-size: 12px; color: #718096;">
+                Если указать новый пароль, старый будет заменён
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>Роли пользователя</label>
+            <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-top: 10px;">
+                {% for role in all_roles %}
+                <div class="checkbox-group" style="margin-bottom: 8px;">
+                    <input type="checkbox" id="role_{{ role.0 }}" name="roles" value="{{ role.0 }}"
+                           {% if role.0 in user_roles %}checked{% endif %}>
+                    <label for="role_{{ role.0 }}">
+                        <span style="font-weight: bold;">{{ role.1 }}</span> - {{ role.2 }}
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label class="checkbox-group">
+                <input type="checkbox" id="is_active" name="is_active" 
+                       {% if user.is_active %}checked{% endif %}>
+                <span>Активный пользователь</span>
+            </label>
+        </div>
+        
+        <div class="form-group" style="margin-top: 30px;">
+            <button type="submit" class="btn btn-success">Сохранить изменения</button>
+            <a href="{% url 'admin_users_list' %}" class="btn" style="background: #a0aec0; margin-left: 10px;">Отмена</a>
+            
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <a href="{% url 'admin_user_activity' user.id %}" class="btn" style="background: #4299e1;">
+                    📊 Просмотр активности
+                </a>
+                
+                <button type="button" onclick="showResetPasswordModal()" class="btn" style="background: #ed8936;">
+                    🔄 Сбросить пароль
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<div id="resetPasswordModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 500px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin: 0;">Сброс пароля пользователя</h3>
+            <button type="button" onclick="closeModal('resetPasswordModal')" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #718096;">&times;</button>
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+            <p>Вы уверены, что хотите сбросить пароль пользователя <strong>{{ user.login }}</strong> ({{ user.email }})?</p>
+            <p style="color: #718096; font-size: 14px;">
+                После сброса будет сгенерирован новый случайный пароль, который нужно будет сообщить пользователю.
+            </p>
+        </div>
+        
+        <div style="display: flex; gap: 10px;">
+            <form method="post" action="{% url 'admin_user_reset_password' user.id %}" style="flex: 1;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger" style="width: 100%;">Да, сбросить пароль</button>
+            </form>
+            <button type="button" onclick="closeModal('resetPasswordModal')" class="btn" 
+                    style="background: #a0aec0; flex: 1;">Отмена</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+}
+
+.alert {
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+}
+
+.alert-info {
+    background-color: #e6fffa;
+    border: 1px solid #81e6d9;
+    color: #234e52;
+}
+</style>
+
+<script>
+function showResetPasswordModal() {
+    document.getElementById('resetPasswordModal').style.display = 'flex';
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    window.onclick = function(event) {
+        const modal = document.getElementById('resetPasswordModal');
+        if (event.target == modal) {
+            closeModal('resetPasswordModal');
+        }
+    }
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeModal('resetPasswordModal');
+        }
+    });
+});
+</script>
+{% endblock %}

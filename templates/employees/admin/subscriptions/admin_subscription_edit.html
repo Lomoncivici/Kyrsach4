@@ -1,0 +1,89 @@
+{% extends 'employees/admin/admin_base.html' %}
+
+{% block title %}Редактировать тариф - Подписки{% endblock %}
+{% block page_title %}✏️ Редактировать тарифный план{% endblock %}
+
+{% block content %}
+<div class="content-box">
+    <h2>Редактирование тарифного плана: {{ plan.name }}</h2>
+
+    <form method="post" style="max-width: 600px;">
+        {% csrf_token %}
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="code">Код тарифа *</label>
+                <input type="text" id="code" name="code" required 
+                       value="{{ plan.code }}" style="text-transform: uppercase;">
+            </div>
+            
+            <div class="form-group">
+                <label for="name">Название тарифа *</label>
+                <input type="text" id="name" name="name" required 
+                       value="{{ plan.name }}">
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="period_months">Период (месяцы) *</label>
+                <select id="period_months" name="period_months" required>
+                    <option value="1" {% if plan.period_months == 1 %}selected{% endif %}>1 месяц</option>
+                    <option value="3" {% if plan.period_months == 3 %}selected{% endif %}>3 месяца</option>
+                    <option value="6" {% if plan.period_months == 6 %}selected{% endif %}>6 месяцев</option>
+                    <option value="12" {% if plan.period_months == 12 %}selected{% endif %}>12 месяцев</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="price">Цена (₽) *</label>
+                <input type="text" id="price" name="price" required 
+                       value="{{ plan.price|default:'0.00'|stringformat:'s' }}" 
+                       placeholder="0.00">
+                <div style="font-size: 12px; color: #718096;">
+                    Формат: 299.00
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label class="checkbox-group">
+                <input type="checkbox" id="is_active" name="is_active" 
+                       {% if plan.is_active %}checked{% endif %}>
+                <span>Активный тариф</span>
+            </label>
+        </div>
+        
+        <div class="form-group">
+            <button type="submit" class="btn btn-success">Сохранить изменения</button>
+            <a href="{% url 'admin_subscriptions' %}" class="btn" style="background: #a0aec0; margin-left: 10px;">Отмена</a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const codeInput = document.getElementById('code');
+    codeInput.addEventListener('input', function() {
+        this.value = this.value.toUpperCase();
+    });
+    
+    const priceInput = document.getElementById('price');
+    priceInput.addEventListener('blur', function() {
+        let val = this.value.replace(',', '.');
+        if (val && !isNaN(parseFloat(val))) {
+            val = parseFloat(val).toFixed(2);
+            this.value = val;
+        }
+    });
+    
+    if (priceInput.value) {
+        let val = priceInput.value.replace(',', '.');
+        if (!isNaN(parseFloat(val))) {
+            val = parseFloat(val).toFixed(2);
+            priceInput.value = val;
+        }
+    }
+});
+</script>
+{% endblock %}

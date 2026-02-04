@@ -1,0 +1,265 @@
+{% extends 'employees/admin/admin_base.html' %}
+
+{% block title %}Редактировать сотрудника - Управление сотрудниками{% endblock %}
+{% block page_title %}✏️ Редактировать сотрудника: {{ employee.full_name }}{% endblock %}
+
+{% block admin_nav %}
+{{ block.super }}
+<a href="{% url 'admin_users_list' %}" 
+   {% if request.resolver_match.url_name == 'admin_users_list' %}class="active"{% endif %}>
+   👥 Пользователи
+</a>
+<a href="{% url 'admin_employees_list' %}" 
+   {% if request.resolver_match.url_name == 'admin_employees_list' %}class="active"{% endif %}>
+   👨‍💼 Сотрудники
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="content-box">
+    <h2>Редактирование сотрудника: {{ employee.full_name }}</h2>
+    
+    {% if messages %}
+    <div class="alert alert-info">
+        {% for message in messages %}
+        {{ message }}
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <form method="post" style="max-width: 800px;">
+        {% csrf_token %}
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="full_name">ФИО *</label>
+                <input type="text" id="full_name" name="full_name" required 
+                       value="{{ employee.full_name }}">
+                <div style="font-size: 12px; color: #718096;">
+                    Полное имя сотрудника
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email *</label>
+                <input type="email" id="email" name="email" required 
+                       value="{{ employee.email }}">
+                <div style="font-size: 12px; color: #718096;">
+                    Рабочий email сотрудника
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Новый пароль (оставьте пустым, если не нужно менять)</label>
+            <input type="password" id="password" name="password" 
+                   placeholder="Минимум 6 символов">
+            <div style="font-size: 12px; color: #718096;">
+                Если указать новый пароль, старый будет заменён
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>Роли сотрудника *</label>
+            <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-top: 10px;">
+                {% for role in all_roles %}
+                <div class="checkbox-group" style="margin-bottom: 8px;">
+                    <input type="checkbox" id="role_{{ role.0 }}" name="roles" value="{{ role.0 }}"
+                           {% if role.0 in employee_roles %}checked{% endif %}>
+                    <label for="role_{{ role.0 }}">
+                        <span style="font-weight: bold;">{{ role.1 }}</span> - {{ role.2 }}
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+            <div style="font-size: 12px; color: #718096; margin-top: 5px;">
+                <strong>Внимание:</strong> При назначении роли ADMIN сотрудник автоматически получит доступ ко всему контенту
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label class="checkbox-group">
+                <input type="checkbox" id="is_active" name="is_active" 
+                       {% if employee.is_active %}checked{% endif %}>
+                <span>Активный сотрудник</span>
+            </label>
+            <div style="font-size: 12px; color: #718096; margin-top: 5px;">
+                Неактивный сотрудник не сможет войти в систему
+            </div>
+        </div>
+        
+        <div class="form-group" style="margin-top: 30px;">
+            <button type="submit" class="btn btn-success">Сохранить изменения</button>
+            <a href="{% url 'admin_employees_list' %}" class="btn" style="background: #a0aec0; margin-left: 10px;">Отмена</a>
+            
+            {% if employee.id != request.session.employee_id %}
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button type="button" onclick="showResetPasswordModal()" class="btn" style="background: #ed8936;">
+                    🔄 Сбросить пароль
+                </button>
+                
+                <button type="button" onclick="showDeleteModal()" class="btn btn-danger">
+                    🗑️ Удалить сотрудника
+                </button>
+            </div>
+            {% else %}
+            <div style="margin-top: 20px; padding: 10px; background: #fffaf0; border: 1px solid #fbd38d; border-radius: 6px;">
+                <strong>⚠️ Внимание:</strong> Вы редактируете свой собственный профиль. 
+                Вы не можете деактивировать или удалить самого себя.
+            </div>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<div id="resetPasswordModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 500px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin: 0;">Сброс пароля сотрудника</h3>
+            <button type="button" onclick="closeModal('resetPasswordModal')" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #718096;">&times;</button>
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+            <p>Вы уверены, что хотите сбросить пароль сотрудника <strong>{{ employee.full_name }}</strong> ({{ employee.email }})?</p>
+            <p style="color: #718096; font-size: 14px;">
+                После сброса будет сгенерирован новый случайный пароль, который нужно будет сообщить сотруднику.
+            </p>
+        </div>
+        
+        <div style="display: flex; gap: 10px;">
+            <form method="post" action="{% url 'admin_employee_reset_password' employee.id %}" style="flex: 1;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger" style="width: 100%;">Да, сбросить пароль</button>
+            </form>
+            <button type="button" onclick="closeModal('resetPasswordModal')" class="btn" 
+                    style="background: #a0aec0; flex: 1;">Отмена</button>
+        </div>
+    </div>
+</div>
+
+<div id="deleteModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 500px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin: 0;">Удаление сотрудника</h3>
+            <button type="button" onclick="closeModal('deleteModal')" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #718096;">&times;</button>
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+            <p style="color: #e53e3e; font-weight: bold;">⚠️ ВНИМАНИЕ!</p>
+            <p>Вы собираетесь удалить сотрудника <strong>{{ employee.full_name }}</strong> ({{ employee.email }}).</p>
+            <p style="color: #718096; font-size: 14px;">
+                Это действие нельзя отменить. Все данные сотрудника будут удалены из системы.
+            </p>
+        </div>
+        
+        <div style="display: flex; gap: 10px;">
+            <form method="post" action="{% url 'admin_employee_delete' employee.id %}" style="flex: 1;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger" style="width: 100%;">Да, удалить сотрудника</button>
+            </form>
+            <button type="button" onclick="closeModal('deleteModal')" class="btn" 
+                    style="background: #a0aec0; flex: 1;">Отмена</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+}
+
+.alert {
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+}
+
+.alert-info {
+    background-color: #e6fffa;
+    border: 1px solid #81e6d9;
+    color: #234e52;
+}
+</style>
+
+<script>
+function showResetPasswordModal() {
+    document.getElementById('resetPasswordModal').style.display = 'flex';
+}
+
+function showDeleteModal() {
+    document.getElementById('deleteModal').style.display = 'flex';
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    window.onclick = function(event) {
+        const resetModal = document.getElementById('resetPasswordModal');
+        const deleteModal = document.getElementById('deleteModal');
+        
+        if (event.target == resetModal) {
+            closeModal('resetPasswordModal');
+        }
+        if (event.target == deleteModal) {
+            closeModal('deleteModal');
+        }
+    }
+    
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeModal('resetPasswordModal');
+            closeModal('deleteModal');
+        }
+    });
+    
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(event) {
+        const roleCheckboxes = document.querySelectorAll('input[name="roles"]:checked');
+        if (roleCheckboxes.length === 0) {
+            alert('Выберите хотя бы одну роль для сотрудника!');
+            event.preventDefault();
+            return false;
+        }
+        
+        const passwordInput = document.getElementById('password');
+        if (passwordInput.value && passwordInput.value.length < 6) {
+            alert('Новый пароль должен содержать минимум 6 символов!');
+            event.preventDefault();
+            return false;
+        }
+        
+        return true;
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Отчет аналитики - {{ start_date }} - {{ end_date }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 20px;
+        }
+        .header h1 {
+            color: #2c3e50;
+            margin: 0;
+        }
+        .header .subtitle {
+            color: #7f8c8d;
+            margin-top: 10px;
+        }
+        .section {
+            margin-bottom: 40px;
+            page-break-inside: avoid;
+        }
+        .section h2 {
+            color: #3498db;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            border-left: 4px solid #3498db;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 10px 0;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        table th {
+            background: #3498db;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+        table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
+        }
+        table tr:hover {
+            background: #f8f9fa;
+        }
+        .chart-placeholder {
+            background: #f8f9fa;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            color: #7f8c8d;
+            margin: 20px 0;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .badge-success { background: #d4edda; color: #155724; }
+        .badge-warning { background: #fff3cd; color: #856404; }
+        .badge-danger { background: #f8d7da; color: #721c24; }
+        .insight {
+            background: #e3f2fd;
+            border-left: 4px solid #1976d2;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 5px 5px 0;
+        }
+        .insight strong {
+            color: #1976d2;
+        }
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .container {
+                box-shadow: none;
+                padding: 0;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📈 Отчет аналитики</h1>
+            <div class="subtitle">
+                Период: {{ start_date }} – {{ end_date }}<br>
+                Сгенерирован: {{ export_date }}<br>
+                <small class="no-print">Для печати: Ctrl+P</small>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📊 Ключевые показатели</h2>
+            <div class="stats-grid">
+                {% for stat in general_stats %}
+                <div class="stat-card">
+                    <div class="stat-label">{{ stat.0 }}</div>
+                    <div class="stat-value">{{ stat.1 }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>👥 Регистрации пользователей</h2>
+            {% if registrations %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Количество</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reg in registrations %}
+                    <tr>
+                        <td>{{ reg.0 }}</td>
+                        <td>{{ reg.1 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>Нет данных о регистрациях</p>
+            {% endif %}
+        </div>
+
+        <div class="section">
+            <h2>💰 Платежи</h2>
+            {% if payments %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Статус</th>
+                        <th>Количество</th>
+                        <th>Сумма</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payment in payments %}
+                    <tr>
+                        <td>{{ payment.0 }}</td>
+                        <td>
+                            <span class="badge {% if payment.3 == 'paid' %}badge-success{% elif payment.3 == 'failed' %}badge-danger{% else %}badge-warning{% endif %}">
+                                {{ payment.3 }}
+                            </span>
+                        </td>
+                        <td>{{ payment.1 }}</td>
+                        <td>{{ payment.2|floatformat:2 }} ₽</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>Нет данных о платежах</p>
+            {% endif %}
+        </div>
+
+        <div class="section">
+            <h2>🛒 Покупки контента</h2>
+            {% if purchases_details %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Пользователь</th>
+                        <th>Контент</th>
+                        <th>Тип</th>
+                        <th>Цена</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for purchase in purchases_details %}
+                    <tr>
+                        <td>{{ purchase.0 }}</td>
+                        <td>{{ purchase.4 }}</td>
+                        <td>{{ purchase.1 }}</td>
+                        <td>
+                            <span class="badge {% if purchase.2 == 'movie' %}badge-success{% else %}badge-warning{% endif %}">
+                                {{ purchase.2 }}
+                            </span>
+                        </td>
+                        <td>{{ purchase.3|floatformat:2 }} ₽</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>Нет данных о покупках</p>
+            {% endif %}
+        </div>
+
+        <div class="section">
+            <h2>📋 Подписки</h2>
+            {% if subscriptions %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Пользователь</th>
+                        <th>План</th>
+                        <th>Статус</th>
+                        <th>Начало</th>
+                        <th>Окончание</th>
+                        <th>Оплата</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sub in subscriptions %}
+                    <tr>
+                        <td>{{ sub.4 }}</td>
+                        <td>{{ sub.0 }}</td>
+                        <td>
+                            <span class="badge {% if sub.1 == 'active' %}badge-success{% else %}badge-warning{% endif %}">
+                                {{ sub.1 }}
+                            </span>
+                        </td>
+                        <td>{{ sub.2|date:"d.m.Y" }}</td>
+                        <td>{{ sub.3|date:"d.m.Y" }}</td>
+                        <td>{{ sub.5|floatformat:2 }} ₽</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>Нет данных о подписках</p>
+            {% endif %}
+        </div>
+
+        <div class="section">
+            <h2>⏱️ Активность пользователей (последние 1000 записей)</h2>
+            {% if user_activity %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Пользователь</th>
+                        <th>Контент</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for activity in user_activity %}
+                    <tr>
+                        <td>{{ activity.0 }}</td>
+                        <td>{{ activity.1 }}</td>
+                        <td>{{ activity.2|truncatechars:50 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>Нет данных об активности</p>
+            {% endif %}
+        </div>
+
+        <div class="footer">
+            <p>Отчет сгенерирован автоматически в системе КиноВечер</p>
+            <p>© {% now "Y" %} КиноВечер. Все права защищены.</p>
+        </div>
+    </div>
+</body>
+</html>

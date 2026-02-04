@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Подтверждение покупки - {{ content.title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/purchase_confirm.css' %}">
+{% endblock %}
+
+{% block content %}
+  <div class="container">
+    <div class="purchase-header">
+      <h1>Подтверждение покупки</h1>
+      <p class="muted">Оплата защищена. Данные карты обрабатываются безопасно.</p>
+    </div>
+
+    {% if messages %}
+      <div class="messages">
+        {% for m in messages %}
+          <div class="alert {% if m.tags %}alert-{{ m.tags }}{% endif %}">{{ m }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="purchase-content">
+      <div class="content-info">
+        <div class="content-card">
+          {% if content.cover_image %}
+            <img src="{{ content.cover_image.url }}" alt="{{ content.title }}" 
+                class="content-cover" 
+                style="width: 100%; height: auto; aspect-ratio: 2/3; object-fit: cover; border-radius: 12px;">
+          {% endif %}
+          
+          <div class="content-details">
+            <h2>{{ content.title }}</h2>
+            <div class="content-meta">
+              <span class="content-type">
+                {% if content.type == "movie" %}
+                  Фильм
+                {% elif content.type == "series" %}
+                  Сериал
+                {% else %}
+                  Мультфильм
+                {% endif %}
+              </span>
+              <span class="content-year">{{ content.release_year }} год</span>
+            </div>
+            
+            <div class="content-description">
+              <h4>Описание:</h4>
+              <p>{{ content.description }}</p>
+            </div>
+            
+            <div class="content-price">
+              <div class="price-label">Стоимость:</div>
+              <div class="price-amount">{{ content.price|floatformat:0 }} ₽</div>
+            </div>
+            <div class="no-return-alert">
+              <small class="text-muted">
+                <i class="bi bi-exclamation-triangle"></i> Цифровой контент не подлежит возврату
+              </small>
+            </div>
+          </div>
+        </div>
+        
+        <div class="purchase-benefits">
+          <h4>Что вы получаете:</h4>
+          <ul>
+            <li>✅ Бессрочный доступ к контенту</li>
+            <li>✅ Просмотр на любых устройствах</li>
+            <li>✅ Высокое качество видео</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="payment-form">
+        <div class="payment-card">
+          <h3>Способ оплаты</h3>
+          
+          <form id="payment-form" method="post" action="{% url 'catalog:process_payment' content.id %}">
+            {% csrf_token %}
+            
+            <div class="form-section">
+              <label for="card_number">Номер карты</label>
+              <div class="input-with-icon">
+                <input
+                  type="text"
+                  id="card_number"
+                  name="card_number"
+                  inputmode="numeric"
+                  autocomplete="cc-number"
+                  maxlength="19"
+                  placeholder="4242 4242 4242 4242"
+                  class="form-input"
+                >
+                <span class="input-icon">💳</span>
+                <span class="card-type-indicator">
+                  <span class="visa-icon" style="display: none;">VISA</span>
+                  <span class="mastercard-icon" style="display: none;">MC</span>
+                  <span class="mir-icon" style="display: none;">МИР</span>
+                </span>
+              </div>
+              <div class="card-icons">
+                <span class="card-icon">visa</span>
+                <span class="card-icon">mastercard</span>
+                <span class="card-icon">mir</span>
+              </div>
+              <div id="card-error" class="error-message" style="display: none;"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-section">
+                <label for="expiry_date">Срок действия</label>
+                <div class="input-with-icon">
+                  <input
+                    type="text"
+                    id="expiry_date"
+                    name="expiry_date"
+                    inputmode="numeric"
+                    autocomplete="cc-exp"
+                    maxlength="5"
+                    placeholder="MM/YY"
+                    class="form-input"
+                    required
+                  >
+                </div>
+              </div>
+              
+              <div class="form-section">
+                <label for="cvc">CVC/CVV</label>
+                <div class="input-with-icon">
+                  <input type="password" 
+                    id="cvc" 
+                    name="cvc" 
+                    placeholder="123"
+                    maxlength="3"
+                    inputmode="numeric"
+                    pattern="[0-9]{3}"
+                    required
+                    autocomplete="cc-csc">
+                  <span class="input-icon">🔒</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <label for="cardholder_name">Имя владельца карты</label>
+              <div class="input-with-icon">
+                <input type="text" 
+                     id="cardholder_name"
+                     autocomplete="cc-name"
+                     name="cardholder_name"
+                     placeholder="IVAN IVANOV"
+                     required>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <label for="email">Email для чека</label>
+              <div class="input-with-icon">
+                <input type="email" 
+                     id="email" 
+                     name="email" 
+                     value="{{ user.email|default:'' }}"
+                     placeholder="your@email.com"
+                     required>
+              </div>
+            </div>
+
+            <div class="payment-summary">
+              <div class="summary-row">
+                <span>Стоимость контента:</span>
+                <span>{{ content.price|floatformat:0 }} ₽</span>
+              </div>
+              <div class="summary-row">
+                <span>Комиссия:</span>
+                <span>0 ₽</span>
+              </div>
+              <div class="summary-row total">
+                <span>Итого к оплате:</span>
+                <span class="total-amount">{{ content.price|floatformat:0 }} ₽</span>
+              </div>
+            </div>
+
+            <div class="payment-actions">
+              <button type="submit" class="btn btn-primary btn-lg btn-pay">
+                <span class="btn-icon">💳</span>
+                Оплатить {{ content.price|floatformat:0 }} ₽
+              </button>
+
+              <div class="no-return-alert">
+                <small class="text-muted">
+                  <i class="bi bi-exclamation-triangle"></i> Цифровой контент не подлежит возврату
+                </small>
+              </div>
+              
+              <a href="{% url 'catalog:content_detail' pk=content.id %}" class="btn btn-outline btn-lg">
+                Отмена
+              </a>
+            </div>
+
+            <div class="payment-security">
+              <p>✅ Обработка платежей защищена</p>
+              <p>✅ Данные карты не сохраняются на сервере</p>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% block extra_js %}
+    <script src="{% static 'js/payment_validation.js' %}"></script>
+  {% endblock %}
+{% endblock %}

@@ -1,0 +1,614 @@
+{% extends 'employees/admin/admin_base.html' %}
+
+{% block title %}Медиафайлы - Управление контентом{% endblock %}
+{% block page_title %}📁 Медиафайлы ({{ total_count }}){% endblock %}
+
+{% block content %}
+<div class="content-box">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin: 0;">Медиафайлы</h2>
+        <button type="button" onclick="showCreateModal()" class="btn btn-success">➕ Создать асет</button>
+    </div>
+    
+    {% if messages %}
+    <div class="alert alert-info">
+        {% for message in messages %}
+        {{ message }}
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <form method="get" id="filterForm" style="display: flex; gap: 10px; align-items: center;">
+            <input type="text" name="search" value="{{ search_query }}" 
+                   placeholder="Поиск по URL или MIME-типу..." 
+                   style="flex: 1; padding: 10px; border: 1px solid #e2e8f0; border-radius: 4px;">
+            <button type="submit" class="btn" style="background: #4299e1;">🔍 Поиск</button>
+            {% if search_query or current_kind != 'all' %}
+            <button type="button" onclick="clearFilters()" class="btn" style="background: #a0aec0;">❌ Очистить</button>
+            {% endif %}
+        </form>
+    </div>
+    
+    <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+        <a href="?search={{ search_query }}" 
+           class="btn {% if current_kind == 'all' %}active{% endif %}" 
+           style="background: #4a5568;">Все ({{ total_count }})</a>
+        
+        <a href="?search={{ search_query }}&kind=image" 
+           class="btn {% if current_kind == 'image' %}active{% endif %}" 
+           style="background: #48bb78;">
+            Изображения 
+            {% for stat in kind_stats %}
+                {% if stat.0 == 'image' %}({{ stat.1 }}){% endif %}
+            {% endfor %}
+        </a>
+        
+        <a href="?search={{ search_query }}&kind=video" 
+           class="btn {% if current_kind == 'video' %}active{% endif %}" 
+           style="background: #4299e1;">
+            Видео 
+            {% for stat in kind_stats %}
+                {% if stat.0 == 'video' %}({{ stat.1 }}){% endif %}
+            {% endfor %}
+        </a>
+        
+        {% for stat in kind_stats %}
+            {% if stat.0 != 'image' and stat.0 != 'video' %}
+            <a href="?search={{ search_query }}&kind={{ stat.0 }}" 
+               class="btn {% if current_kind == stat.0 %}active{% endif %}" 
+               style="background: #a0aec0;">
+                {{ stat.0|title }} ({{ stat.1 }})
+            </a>
+            {% endif %}
+        {% endfor %}
+    </div>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+            <div style="font-size: 14px; color: #718096;">Всего файлов</div>
+            <div style="font-size: 24px; font-weight: bold;">{{ total_count }}</div>
+        </div>
+        
+        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+            <div style="font-size: 14px; color: #718096;">Изображений</div>
+            <div style="font-size: 24px; font-weight: bold; color: #48bb78;">
+                {% for stat in kind_stats %}{% if stat.0 == 'image' %}{{ stat.1 }}{% endif %}{% endfor %}
+            </div>
+        </div>
+        
+        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+            <div style="font-size: 14px; color: #718096;">Видео</div>
+            <div style="font-size: 24px; font-weight: bold; color: #4299e1;">
+                {% for stat in kind_stats %}{% if stat.0 == 'video' %}{{ stat.1 }}{% endif %}{% endfor %}
+            </div>
+        </div>
+        
+        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+            <div style="font-size: 14px; color: #718096;">Неиспользуемых</div>
+            <div style="font-size: 24px; font-weight: bold; color: #e53e3e;" id="unused-count">
+                {{ unused_count|default:0 }}
+            </div>
+        </div>
+    </div>
+    
+    {% if media_assets %}
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Тип</th>
+                    <th>URL</th>
+                    <th>MIME-тип</th>
+                    <th>Размер</th>
+                    <th>Использование</th>
+                    <th>Дата</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for media in media_assets %}
+                <tr>
+                    <td>
+                        {% if media.1 == 'image' %}
+                        <span class="badge" style="background: #48bb78;">Изображение</span>
+                        {% elif media.1 == 'video' %}
+                        <span class="badge" style="background: #4299e1;">Видео</span>
+                        {% else %}
+                        <span class="badge" style="background: #a0aec0;">{{ media.1 }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="max-width: 300px; word-break: break-all;">
+                            <a href="{{ media.3 }}" target="_blank" style="color: #4299e1; font-size: 12px;">
+                                {{ media.3|truncatechars:60 }}
+                            </a>
+                        </div>
+                        <div style="font-size: 11px; color: #718096; font-family: monospace;">
+                            ID: {{ media.0|slice:":8" }}...
+                        </div>
+                    </td>
+                    <td>
+                        <span style="font-size: 12px; font-family: monospace;">{{ media.2|truncatechars:25 }}</span>
+                    </td>
+                    <td>
+                        {% if media.4 %}
+                            <span class="badge" style="background: #805ad5;">
+                                {{ media.4|filesizeformat }}
+                            </span>
+                        {% else %}
+                            <span style="color: #a0aec0;">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% with total_usage=media.6|add:media.7|add:media.8|add:media.9|add:media.10 %}
+                            {% if total_usage > 0 %}
+                            <span class="badge" style="background: #ed8936;">
+                                {{ total_usage }} раз
+                            </span>
+                            <div style="font-size: 10px; margin-top: 3px;">
+                                {% if media.6 > 0 %}<span style="color: #4299e1;">🎬{{ media.6 }}</span>{% endif %}
+                                {% if media.7 > 0 %}<span style="color: #48bb78; margin-left: 5px;">🖼️{{ media.7 }}</span>{% endif %}
+                                {% if media.8 > 0 %}<span style="color: #ed8936; margin-left: 5px;">📢{{ media.8 }}</span>{% endif %}
+                                {% if media.9 > 0 %}<span style="color: #805ad5; margin-left: 5px;">🖼️{{ media.9 }}</span>{% endif %}
+                                {% if media.10 > 0 %}<span style="color: #38b2ac; margin-left: 5px;">📺{{ media.10 }}</span>{% endif %}
+                            </div>
+                            {% else %}
+                            <span style="color: #a0aec0; font-size: 12px;" class="usage-status" data-asset-id="{{ media.0 }}">
+                                Не используется
+                            </span>
+                            {% endif %}
+                        {% endwith %}
+                    </td>
+                    <td>
+                        {{ media.5|date:"d.m.Y" }}
+                        <div style="font-size: 11px; color: #718096;">
+                            {{ media.5|date:"H:i" }}
+                        </div>
+                    </td>
+                    <td class="actions">
+                        <button type="button" onclick="showEditModal('{{ media.0 }}', '{{ media.1 }}', '{{ media.2|escapejs }}', '{{ media.3|escapejs }}')" 
+                                class="btn" style="padding: 4px 8px; font-size: 12px;">✏️</button>
+                        
+                        <form method="post" action="{% url 'admin_media_assets' %}" style="display: inline;" class="delete-form" data-asset-id="{{ media.0 }}">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="asset_id" value="{{ media.0 }}">
+                            <button type="submit" class="btn btn-danger" 
+                                    style="padding: 4px 8px; font-size: 12px;"
+                                    onclick="return confirmDelete('{{ media.0 }}', '{{ media.3|escapejs }}')">
+                                🗑️
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {% if search_query or current_kind != 'all' %}
+    <div style="margin-top: 20px; padding: 10px; background: #f0fff4; border: 1px solid #9ae6b4; border-radius: 4px;">
+        {% if search_query %}
+        Найдено <strong>{{ total_count }}</strong> результатов по запросу: "<strong>{{ search_query }}</strong>"
+        {% if current_kind != 'all' %} (тип: <strong>{{ current_kind }}</strong>){% endif %}
+        {% else %}
+        Показано <strong>{{ total_count }}</strong> файлов типа: <strong>{{ current_kind }}</strong>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <div style="text-align: center; padding: 40px; color: #718096;">
+        {% if search_query or current_kind != 'all' %}
+        <p>По заданным фильтрам ничего не найдено</p>
+        <a href="{% url 'admin_media_assets' %}" class="btn" style="margin-top: 15px;">Показать все файлы</a>
+        {% else %}
+        <p>Медиафайлы не найдены</p>
+        <button type="button" onclick="showCreateModal()" class="btn btn-success" style="margin-top: 15px;">
+            ➕ Создать первый асет
+        </button>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<div id="createModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 500px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin: 0;">Создать медиа-асет</h3>
+            <button type="button" onclick="closeModal('createModal')" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #718096;">&times;</button>
+        </div>
+        
+        <form method="post" id="createForm">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create">
+            
+            <div class="form-group">
+                <label for="create_url">URL *</label>
+                <input type="url" id="create_url" name="url" required 
+                       placeholder="https://example.com/image.jpg"
+                       style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 4px;">
+                <div style="font-size: 12px; color: #718096; margin-top: 5px;">
+                    Примеры: https://cdn.example.com/video.mp4, https://images.com/poster.jpg
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group" style="flex: 1;">
+                    <label for="create_kind">Тип *</label>
+                    <select id="create_kind" name="kind" required onchange="updateMimeType('create')"
+                            style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 4px;">
+                        <option value="image">Изображение</option>
+                        <option value="video">Видео</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" style="flex: 1;">
+                    <label for="create_mime_type">MIME-тип</label>
+                    <input type="text" id="create_mime_type" name="mime_type" 
+                           placeholder="Автоопределение"
+                           style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 4px;">
+                </div>
+            </div>
+            
+            <div class="form-group" style="margin-top: 25px; display: flex; gap: 10px;">
+                <button type="submit" class="btn btn-success" style="flex: 1;">Создать асет</button>
+                <button type="button" onclick="closeModal('createModal')" class="btn" 
+                        style="background: #a0aec0; flex: 1;">Отмена</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="editModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 500px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin: 0;">Редактировать медиа-асет</h3>
+            <button type="button" onclick="closeModal('editModal')" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #718096;">&times;</button>
+        </div>
+        
+        <form method="post" id="editForm">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="edit">
+            <input type="hidden" id="edit_asset_id" name="asset_id" value="">
+            
+            <div class="form-group">
+                <label for="edit_url">URL *</label>
+                <input type="url" id="edit_url" name="url" required 
+                       style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 4px;">
+                <div style="font-size: 12px; color: #718096; margin-top: 5px;">
+                    Должен начинаться с http:// или https://
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group" style="flex: 1;">
+                    <label for="edit_kind">Тип *</label>
+                    <select id="edit_kind" name="kind" required onchange="updateMimeType('edit')"
+                            style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 4px;">
+                        <option value="image">Изображение</option>
+                        <option value="video">Видео</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" style="flex: 1;">
+                    <label for="edit_mime_type">MIME-тип</label>
+                    <input type="text" id="edit_mime_type" name="mime_type" 
+                           style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 4px;">
+                </div>
+            </div>
+            
+            <div class="form-group" style="margin-top: 25px; display: flex; gap: 10px;">
+                <button type="submit" class="btn btn-success" style="flex: 1;">Сохранить изменения</button>
+                <button type="button" onclick="closeModal('editModal')" class="btn" 
+                        style="background: #a0aec0; flex: 1;">Отмена</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+.modal-content {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { 
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to { 
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.form-row .form-group {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #4a5568;
+}
+
+input[type="text"],
+input[type="url"],
+select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+input[type="text"]:focus,
+input[type="url"]:focus,
+select:focus {
+    outline: none;
+    border-color: #4299e1;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+}
+
+.btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    text-decoration: none;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn.active {
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.3);
+    transform: translateY(-1px);
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+}
+
+.alert-info {
+    background-color: #e6fffa;
+    border: 1px solid #81e6d9;
+    color: #234e52;
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+}
+
+.actions {
+    white-space: nowrap;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.querySelector('input[name="search"]');
+    if (searchInput && !searchInput.value) {
+        searchInput.focus();
+    }
+
+    updateUnusedCount();
+});
+
+function updateUnusedCount() {
+    const usageElements = document.querySelectorAll('.usage-status');
+    const unusedCount = usageElements.length;
+    document.getElementById('unused-count').textContent = unusedCount;
+}
+
+function showCreateModal() {
+    document.getElementById('createForm').reset();
+    document.getElementById('create_mime_type').value = '';
+    document.getElementById('createModal').style.display = 'flex';
+    document.getElementById('create_url').focus();
+}
+
+function showEditModal(assetId, kind, mimeType, url) {
+    document.getElementById('edit_asset_id').value = assetId;
+    document.getElementById('edit_kind').value = kind;
+    document.getElementById('edit_mime_type').value = mimeType || '';
+    document.getElementById('edit_url').value = url;
+    
+    document.getElementById('editModal').style.display = 'flex';
+    document.getElementById('edit_url').focus();
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+}
+
+function updateMimeType(formType) {
+    const urlInput = document.getElementById(formType + '_url');
+    const kindSelect = document.getElementById(formType + '_kind');
+    const mimeInput = document.getElementById(formType + '_mime_type');
+    
+    const url = urlInput.value.trim();
+    const kind = kindSelect.value;
+    
+    if (!url) {
+        mimeInput.value = '';
+        return;
+    }
+    
+    let mimeType = '';
+    
+    if (kind === 'video') {
+        if (url.endsWith('.mp4')) {
+            mimeType = 'video/mp4';
+        } else if (url.endsWith('.webm')) {
+            mimeType = 'video/webm';
+        } else if (url.endsWith('.ogg') || url.endsWith('.ogv')) {
+            mimeType = 'video/ogg';
+        } else if (url.endsWith('.m3u8')) {
+            mimeType = 'application/vnd.apple.mpegurl';
+        } else if (url.endsWith('.mpd')) {
+            mimeType = 'application/dash+xml';
+        } else {
+            mimeType = 'video/mp4';
+        }
+    } else if (kind === 'image') {
+        if (url.endsWith('.jpg') || url.endsWith('.jpeg')) {
+            mimeType = 'image/jpeg';
+        } else if (url.endsWith('.png')) {
+            mimeType = 'image/png';
+        } else if (url.endsWith('.gif')) {
+            mimeType = 'image/gif';
+        } else if (url.endsWith('.webp')) {
+            mimeType = 'image/webp';
+        } else if (url.endsWith('.svg')) {
+            mimeType = 'image/svg+xml';
+        } else {
+            mimeType = 'image/jpeg';
+        }
+    } else if (kind === 'audio') {
+        if (url.endsWith('.mp3')) {
+            mimeType = 'audio/mpeg';
+        } else if (url.endsWith('.wav')) {
+            mimeType = 'audio/wav';
+        } else if (url.endsWith('.ogg')) {
+            mimeType = 'audio/ogg';
+        } else {
+            mimeType = 'audio/mpeg';
+        }
+    } else if (kind === 'document') {
+        if (url.endsWith('.pdf')) {
+            mimeType = 'application/pdf';
+        } else if (url.endsWith('.txt')) {
+            mimeType = 'text/plain';
+        } else if (url.endsWith('.html') || url.endsWith('.htm')) {
+            mimeType = 'text/html';
+        } else {
+            mimeType = 'application/octet-stream';
+        }
+    }
+    
+    mimeInput.value = mimeType;
+}
+
+function confirmDelete(assetId, url) {
+    const row = document.querySelector(`.delete-form[data-asset-id="${assetId}"]`).closest('tr');
+    const usageElement = row.querySelector('td:nth-child(5)');
+    
+    if (usageElement) {
+        const usageText = usageElement.textContent;
+        
+        if (usageText.includes('Не используется')) {
+            return confirm(`Удалить неиспользуемый медиафайл?\n\nURL: ${url}\n\nID: ${assetId}`);
+        } else {
+            const match = usageText.match(/(\d+)\s+раз/);
+            const usageCount = match ? match[1] : 'несколько';
+            
+            return confirm(
+                `ВНИМАНИЕ: Этот медиафайл используется ${usageCount} раз(а)!\n\n` +
+                `URL: ${url}\n` +
+                `ID: ${assetId}\n\n` +
+                `ПРИМЕЧАНИЕ: Все ссылки на этот файл будут очищены (установлены в NULL).\n` +
+                `Это может сделать некоторые страницы контента без изображений/видео.\n\n` +
+                `Вы уверены, что хотите удалить?`
+            );
+        }
+    }
+    
+    return confirm(`Удалить медиафайл?\n\nURL: ${url}\n\nID: ${assetId}`);
+}
+
+document.querySelectorAll('.delete-form').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        const assetId = this.getAttribute('data-asset-id');
+        const url = this.closest('tr').querySelector('a[target="_blank"]').href;
+        
+        if (!confirmDelete(assetId, url)) {
+            e.preventDefault();
+            return false;
+        }
+    });
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const createUrl = document.getElementById('create_url');
+    const editUrl = document.getElementById('edit_url');
+    
+    if (createUrl) {
+        createUrl.addEventListener('blur', function() {
+            if (this.value.trim()) {
+                updateMimeType('create');
+            }
+        });
+    }
+    
+    if (editUrl) {
+        editUrl.addEventListener('blur', function() {
+            if (this.value.trim()) {
+                updateMimeType('edit');
+            }
+        });
+    }
+});
+
+window.onclick = function(event) {
+    const createModal = document.getElementById('createModal');
+    const editModal = document.getElementById('editModal');
+    
+    if (event.target == createModal) {
+        closeModal('createModal');
+    }
+    if (event.target == editModal) {
+        closeModal('editModal');
+    }
+}
+
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeModal('createModal');
+        closeModal('editModal');
+    }
+});
+</script>
+{% endblock %}

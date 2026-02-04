@@ -44,7 +44,6 @@ def add_review(request, content_id):
     if rating < 1 or rating > 5:
         return HttpResponseBadRequest("rating 1..5")
     with connection.cursor() as cur:
-        # RLS-актор уже проставлен middleware
         cur.execute("""
             INSERT INTO cinema.content_reviews(user_id, content_id, rating, comment)
             VALUES ((SELECT id FROM cinema.users WHERE login=%s), %s, %s, %s)

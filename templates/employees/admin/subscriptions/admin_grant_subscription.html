@@ -1,0 +1,142 @@
+{% extends 'employees/admin/admin_base.html' %}
+
+{% block title %}Выдать подписку - Подписки{% endblock %}
+{% block page_title %}🎁 Выдать подписку пользователю{% endblock %}
+
+{% block admin_nav %}
+{{ block.super }}
+<a href="{% url 'admin_subscriptions' %}" 
+   {% if request.resolver_match.url_name == 'admin_subscriptions' %}class="active"{% endif %}>
+   💰 Тарифные планы
+</a>
+<a href="{% url 'admin_user_subscriptions' %}" 
+   {% if request.resolver_match.url_name == 'admin_user_subscriptions' %}class="active"{% endif %}>
+   👥 Пользовательские подписки
+</a>
+<a href="{% url 'admin_payments' %}" 
+   {% if request.resolver_match.url_name == 'admin_payments' %}class="active"{% endif %}>
+   💳 Платежи
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="content-box">
+    <h2>Выдача подписки пользователю</h2>
+    
+    <form method="post" style="max-width: 800px;">
+        {% csrf_token %}
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="user_id">Пользователь *</label>
+                <select id="user_id" name="user_id" required style="width: 100%; padding: 10px;">
+                    <option value="">Выберите пользователя...</option>
+                    {% for user in users %}
+                    <option value="{{ user.0 }}">{{ user.1 }} ({{ user.2 }})</option>
+                    {% endfor %}
+                </select>
+                <div style="font-size: 12px; color: #718096;">
+                    Только активные пользователи
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="plan_id">Тарифный план *</label>
+                <select id="plan_id" name="plan_id" required style="width: 100%; padding: 10px;">
+                    <option value="">Выберите тарифный план...</option>
+                    {% for plan in plans %}
+                    <option value="{{ plan.0 }}" 
+                            data-price="{{ plan.3 }}"
+                            data-period="{{ plan.4 }}">
+                        {{ plan.1 }} - {{ plan.3 }} ₽ ({{ plan.4 }} мес.)
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="start_date">Дата начала</label>
+                <input type="date" id="start_date" name="start_date" 
+                       value="{{ today|date:'Y-m-d' }}">
+                <div style="font-size: 12px; color: #718096;">
+                    Если пусто, начнется сегодня
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="status">Статус подписки *</label>
+                <select id="status" name="status" required>
+                    <option value="active" selected>Активна</option>
+                    <option value="pending">В ожидании</option>
+                    <option value="cancelled">Отменена</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <h3>Информация о выбранном плане</h3>
+            <div style="background: #f0f4f8; padding: 15px; border-radius: 8px; margin-top: 10px;">
+                <div id="plan_info" style="color: #718096;">
+                    Выберите тарифный план для просмотра информации
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <button type="submit" class="btn btn-success">🎁 Выдать подписку</button>
+            <a href="{% url 'admin_user_subscriptions' %}" class="btn" style="background: #a0aec0; margin-left: 10px;">Отмена</a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const planSelect = document.getElementById('plan_id');
+    const planInfo = document.getElementById('plan_info');
+    const startDateInput = document.getElementById('start_date');
+    const statusSelect = document.getElementById('status');
+    
+    if (!startDateInput.value) {
+        const today = new Date().toISOString().split('T')[0];
+        startDateInput.value = today;
+    }
+    
+    function updatePlanInfo() {
+        const selectedPlan = planSelect.options[planSelect.selectedIndex];
+        const price = selectedPlan.dataset.price || '0.00';
+        const period = selectedPlan.dataset.period || '1';
+        
+        if (planSelect.value) {
+            const startDate = startDateInput.value;
+            let endDate = '—';
+            
+            if (startDate) {
+                const start = new Date(startDate);
+                const end = new Date(start);
+                end.setMonth(end.getMonth() + parseInt(period));
+                endDate = end.toISOString().split('T')[0];
+            }
+            
+            planInfo.innerHTML = `
+                <strong>Название:</strong> ${selectedPlan.text}<br>
+                <strong>Период:</strong> ${period} месяцев<br>
+                <strong>Стоимость:</strong> ${price} ₽<br>
+                <strong>Дата начала:</strong> ${startDate || 'сегодня'}<br>
+                <strong>Дата окончания:</strong> ${endDate}<br>
+                <strong>Статус:</strong> ${statusSelect.options[statusSelect.selectedIndex].text}
+            `;
+        } else {
+            planInfo.textContent = 'Выберите тарифный план для просмотра информации';
+        }
+    }
+    
+    planSelect.addEventListener('change', updatePlanInfo);
+    startDateInput.addEventListener('change', updatePlanInfo);
+    statusSelect.addEventListener('change', updatePlanInfo);
+    
+    updatePlanInfo();
+});
+</script>
+{% endblock %}

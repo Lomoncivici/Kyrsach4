@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Поиск: "{{ query }}" | КИНОВЕЧЕР{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/search.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="search-wrapper">
+  <div class="search-header">
+    <h1>Результаты поиска</h1>
+    <p class="muted">По запросу «{{ query }}» найдено {{ count }} результатов</p>
+  </div>
+
+  <div class="search-results-container">
+    {% if exact_match %}
+    <div class="exact-match-section">
+      <h2>Точное совпадение</h2>
+      <div class="exact-match-card">
+        <div class="exact-match-cover">
+          <a href="{% url 'catalog:content_detail' pk=exact_match.id %}" class="exact-match-cover-link">
+            {% if exact_match.poster_url %}
+            <img src="{{ exact_match.poster_url }}" alt="{{ exact_match.title }}">
+            {% else %}
+            <div class="image-placeholder">
+              <span>Нет изображения</span>
+            </div>
+            {% endif %}
+          </a>
+        </div>
+        <div class="exact-match-details">
+          <a href="{% url 'catalog:content_detail' pk=exact_match.id %}" class="card-title-link">
+            <h3>{{ exact_match.title }}</h3>
+          </a>
+          <div class="exact-match-meta">
+            <span class="exact-match-type">{{ exact_match.kind_display }}</span>
+            {% if exact_match.year %}<span class="exact-match-year">{{ exact_match.year }}</span>{% endif %}
+            {% if exact_match.rating and exact_match.rating > 0 %}
+            <span class="exact-match-rating">
+              ★ {{ exact_match.rating|floatformat:1 }}
+            </span>
+            {% endif %}
+          </div>
+          <div class="exact-match-description">
+            {{ exact_match.description|truncatewords:50 }}
+          </div>
+          <div class="exact-match-actions">
+            <a href="{{ exact_match.cta_href }}" class="btn btn-primary">
+              {% if exact_match.is_free %}
+                Смотреть бесплатно
+              {% elif exact_match.is_subscription %}
+                По подписке
+              {% else %}
+                Купить за {{ exact_match.price|floatformat:0 }} ₽
+              {% endif %}
+            </a>
+            <a href="{% url 'catalog:content_detail' pk=exact_match.id %}" class="btn btn-outline">
+              Подробнее
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if results %}
+    <div class="similar-results-section {% if not exact_match %}search-results-no-match{% endif %}">
+      <h2>{% if exact_match %}Похожие результаты{% else %}Результаты поиска{% endif %}</h2>
+      
+      {% if not exact_match and results|length > 5 %}
+      <div class="search-controls">
+        <div>
+          <small class="muted">Найдено: {{ results|length }} результатов</small>
+        </div>
+        <div class="btn-group">
+          <select id="sortSelect">
+            <option value="relevance">По релевантности</option>
+            <option value="rating">По рейтингу</option>
+            <option value="year">По году</option>
+            <option value="title">По названию</option>
+          </select>
+          <select id="typeFilter">
+            <option value="all">Все типы</option>
+            <option value="movie">Фильмы</option>
+            <option value="series">Сериалы</option>
+          </select>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="cards-container">
+        <div class="cards-grid">
+          {% for item in results %}
+          {% if exact_match and item.id != exact_match.id or not exact_match %}
+          <div class="card search-card">
+            <div class="content-type-badge">
+              {{ item.type }}
+            </div>
+            
+            {% if item.rating and item.rating > 0 %}
+            <div class="rating-badge">
+              ★ {{ item.rating|floatformat:1 }}
+            </div>
+            {% endif %}
+
+            <a href="{% url 'catalog:content_detail' pk=item.id %}" class="search-card-image-link">
+              {% if item.poster_url %}
+              <img src="{{ item.poster_url }}" alt="{{ item.title }}">
+              {% else %}
+              <div class="image-placeholder">
+                <span>Нет изображения</span>
+              </div>
+              {% endif %}
+            </a>
+
+            <a href="{% url 'catalog:content_detail' pk=item.id %}" class="card-title-link">
+              <div class="card-title">{{ item.title }}</div>
+            </a>
+            
+            <div class="card-meta">
+              {% if item.year %}{{ item.year }} год • {% endif %}{{ item.kind_display }}
+            </div>
+            <div class="card-meta">
+              {{ item.description|truncatewords:15 }}
+            </div>
+            
+            <div class="card-actions">
+              <div style="margin-bottom: 8px;">
+                {% if item.is_free %}
+                <span class="free-tag">Бесплатно</span>
+                {% elif item.price > 1 %}
+                <span class="price-tag">{{ item.price|floatformat:0 }} ₽</span>
+                {% elif item.price > 0 and item.price <= 1 %}
+                <span class="subscription-tag">По подписке</span>
+                {% endif %}
+              </div>
+              
+              <a href="{% url 'catalog:content_detail' pk=item.id %}" class="btn btn-more w-100">
+                Подробнее
+              </a>
+            </div>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if not results and not exact_match %}
+    <div class="no-results">
+      <h3>Ничего не найдено</h3>
+      <p>Попробуйте изменить запрос или посмотрите наши рекомендации</p>
+      <a href="{% url 'catalog:main' %}" class="btn btn-primary">
+        Вернуться на главную
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const sortSelect = document.getElementById('sortSelect');
+  const typeFilter = document.getElementById('typeFilter');
+  
+  if (sortSelect) {
+    sortSelect.addEventListener('change', function() {
+      console.log('Сортировка по:', this.value);
+    });
+  }
+  
+  if (typeFilter) {
+    typeFilter.addEventListener('change', function() {
+      console.log('Фильтр типа:', this.value);
+    });
+  }
+});
+</script>
+{% endblock %}

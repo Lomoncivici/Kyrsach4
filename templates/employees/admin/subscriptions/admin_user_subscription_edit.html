@@ -1,0 +1,97 @@
+{% extends 'employees/admin/admin_base.html' %}
+
+{% block title %}Редактировать подписку - Подписки{% endblock %}
+{% block page_title %}✏️ Редактировать подписку{% endblock %}
+
+{% block admin_nav %}
+{{ block.super }}
+<a href="{% url 'admin_subscriptions' %}" 
+   {% if request.resolver_match.url_name == 'admin_subscriptions' %}class="active"{% endif %}>
+   💰 Тарифные планы
+</a>
+<a href="{% url 'admin_user_subscriptions' %}" 
+   {% if request.resolver_match.url_name == 'admin_user_subscriptions' %}class="active"{% endif %}>
+   👥 Пользовательские подписки
+</a>
+<a href="{% url 'admin_payments' %}" 
+   {% if request.resolver_match.url_name == 'admin_payments' %}class="active"{% endif %}>
+   💳 Платежи
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="content-box">
+    <h2>Редактирование подписки пользователя: {{ subscription.user_login }}</h2>
+    
+    <div style="background: #f7fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <h3 style="margin-top: 0;">Информация о подписке</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <div>
+                <div style="font-size: 14px; color: #718096;">Пользователь</div>
+                <div style="font-weight: bold;">{{ subscription.user_login }}</div>
+            </div>
+            <div>
+                <div style="font-size: 14px; color: #718096;">Тарифный план</div>
+                <div style="font-weight: bold;">{{ subscription.plan_name }}</div>
+            </div>
+            <div>
+                <div style="font-size: 14px; color: #718096;">Начало подписки</div>
+                <div>{{ subscription.started_at|date:"d.m.Y H:i" }}</div>
+            </div>
+            <div>
+                <div style="font-size: 14px; color: #718096;">ID подписки</div>
+                <div style="font-size: 12px; font-family: monospace;">{{ subscription.id }}</div>
+            </div>
+        </div>
+    </div>
+    
+    <form method="post" style="max-width: 600px;">
+        {% csrf_token %}
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="status">Статус подписки *</label>
+                <select id="status" name="status" required>
+                    <option value="active" {% if subscription.status == 'active' %}selected{% endif %}>Активна</option>
+                    <option value="cancelled" {% if subscription.status == 'cancelled' %}selected{% endif %}>Отменена</option>
+                    <option value="expired" {% if subscription.status == 'expired' %}selected{% endif %}>Истекла</option>
+                    <option value="pending" {% if subscription.status == 'pending' %}selected{% endif %}>В ожидании</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="expires_at">Дата окончания</label>
+                <input type="date" id="expires_at" name="expires_at" 
+                       value="{{ subscription.expires_at|date:'Y-m-d'|default:'' }}">
+                <div style="font-size: 12px; color: #718096;">
+                    Оставьте пустым для бессрочной подписки
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <button type="submit" class="btn btn-success">Сохранить изменения</button>
+            <a href="{% url 'admin_user_subscriptions' %}" class="btn" style="background: #a0aec0; margin-left: 10px;">Отмена</a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const statusSelect = document.getElementById('status');
+    const expiresInput = document.getElementById('expires_at');
+    
+    statusSelect.addEventListener('change', function() {
+        if (this.value === 'expired') {
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            expiresInput.value = yesterday.toISOString().split('T')[0];
+        } else if (this.value === 'active' && !expiresInput.value) {
+            const futureDate = new Date();
+            futureDate.setDate(futureDate.getDate() + 30);
+            expiresInput.value = futureDate.toISOString().split('T')[0];
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,86 @@
+{% extends 'employees/base.html' %}
+
+{% block title %}Поддержка - КиноВечер{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>💬 Поддержка пользователей</h1>
+    <p>Информация для помощи пользователям</p>
+</div>
+
+<div class="content-box">
+    <h2>Последние регистрации</h2>
+    {% if recent_users %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Логин</th>
+                <th>Email</th>
+                <th>Дата регистрации</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for login, email, created_at in recent_users %}
+            <tr>
+                <td>{{ login }}</td>
+                <td>{{ email }}</td>
+                <td>{{ created_at|date:"d.m.Y H:i" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: #888; text-align: center;">Нет данных о пользователях</p>
+    {% endif %}
+</div>
+
+<div class="content-box">
+    <h2>Подписки, скоро истекающие (7 дней)</h2>
+    {% if expiring_subscriptions %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Пользователь</th>
+                <th>Тариф</th>
+                <th>Истекает</th>
+                <th>Осталось дней</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for login, expires_at, plan_name in expiring_subscriptions %}
+            <tr>
+                <td>{{ login }}</td>
+                <td>{{ plan_name }}</td>
+                <td>{{ expires_at|date:"d.m.Y" }}</td>
+                <td>
+                    {% with days_left=expires_at|timeuntil %}
+                    {{ days_left }}
+                    {% endwith %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: #888; text-align: center;">Нет подписок, истекающих в ближайшие 7 дней</p>
+    {% endif %}
+</div>
+
+<div class="content-box">
+    <h2>Частые проблемы и решения</h2>
+    <div style="display: grid; gap: 15px;">
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+            <strong>Проблема:</strong> Пользователь не может войти в аккаунт<br>
+            <strong>Решение:</strong> Проверить email в cinema.users, сбросить пароль через Django админку
+        </div>
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+            <strong>Проблема:</strong> Не работает доступ к контенту по подписке<br>
+            <strong>Решение:</strong> Проверить статус подписки в cinema.user_subscriptions
+        </div>
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+            <strong>Проблема:</strong> Не приходит email подтверждение<br>
+            <strong>Решение:</strong> Проверить настройки email в settings.py, проверить логи
+        </div>
+    </div>
+</div>
+{% endblock %}

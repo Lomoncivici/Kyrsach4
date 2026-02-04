@@ -104,3 +104,9 @@
   .hero-title { font-size: 26px; }
   .hero-overlay { left: 12px; right: 12px; bottom: 12px; max-width: none; }
 }
+
+.hero-title{ font-size: clamp(24px, 3.2vw, 46px); }
+.hero-overlay{ left: clamp(12px, 3vw, 28px); right: clamp(12px, 3vw, 28px); }
+@media (max-width: 520px){
+  .hero-dots{ left: 12px; right: 12px; bottom: 10px; }
+}

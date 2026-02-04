@@ -1,16 +1,14 @@
 <header id="hotbar" class="hotbar">
   <div class="hotbar__inner">
-    <!-- ЛЕВО -->
     <div class="hotbar__left">
       <a href="/" class="logo">КИНОВЕЧЕР</a>
     </div>
 
-    <!-- ЦЕНТР -->
     <div class="hotbar__center">
       <nav class="hotbar__nav">
         {% if user.is_authenticated %}
           <a href="{% url 'catalog:my_page' %}" class="nav-link">Моё</a>
-          <a href="/subscriptions" class="nav-link">Подписки</a>
+          <a href="/subscribe/" class="nav-link">Подписки</a>
         {% else %}
           <a href="/login" class="nav-link">Моё</a>
           <a href="/login" class="nav-link">Подписки</a>
@@ -28,7 +26,6 @@
       </form>
     </div>
 
-    <!-- ПРАВО -->
     <div class="hotbar__right">
       {% if request.user.is_authenticated %}
         <div class="user-menu">

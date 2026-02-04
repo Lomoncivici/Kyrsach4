@@ -1,0 +1,91 @@
+{% extends 'employees/admin/admin_base.html' %}
+
+{% block title %}Управление жанрами - Управление контентом{% endblock %}
+{% block page_title %}🏷️ Управление жанрами{% endblock %}
+
+{% block content %}
+<div class="content-box">
+    <h2>Добавить новый жанр</h2>
+
+    {% if message %}
+    <div class="alert alert-info">
+        {{ message }}
+    </div>
+    {% endif %}
+    
+    <form method="post" style="max-width: 400px;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="add">
+        <div class="form-group">
+            <label for="genre_name">Название жанра</label>
+            <input type="text" id="genre_name" name="genre_name" required placeholder="Например: Комедия">
+        </div>
+        <button type="submit" class="btn btn-success">➕ Добавить жанр</button>
+    </form>
+</div>
+
+<div class="content-box">
+    <h2>Список жанров</h2>
+    
+    {% if genres %}
+    <table>
+        <thead>
+            <tr>
+                <th>Жанр</th>
+                <th>Используется</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for genre in genres %}
+            <tr>
+                <td>{{ genre.1 }}</td>
+                <td>
+                    {% for stat in genre_stats %}
+                        {% if stat.0 == genre.1 %}
+                            {{ stat.1 }} контентов
+                        {% endif %}
+                    {% endfor %}
+                </td>
+                <td class="actions">
+                    <form method="post" style="display: inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="genre_id" value="{{ genre.0 }}">
+                        <button type="submit" class="btn btn-danger" style="padding: 4px 8px; font-size: 12px;" 
+                                onclick="return confirm('Удалить жанр «{{ genre.1 }}»?')">🗑️ Удалить</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: #718096; text-align: center; padding: 20px;">Жанры не найдены</p>
+    {% endif %}
+</div>
+
+<div class="content-box">
+    <h2>Статистика по жанрам</h2>
+    {% if genre_stats %}
+    <table>
+        <thead>
+            <tr>
+                <th>Жанр</th>
+                <th>Количество использований</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for stat in genre_stats %}
+            <tr>
+                <td>{{ stat.0 }}</td>
+                <td>{{ stat.1 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: #718096; text-align: center; padding: 20px;">Нет статистики по жанрам</p>
+    {% endif %}
+</div>
+{% endblock %}

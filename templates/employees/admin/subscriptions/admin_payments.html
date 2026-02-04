@@ -1,0 +1,249 @@
+{% extends 'employees/admin/admin_base.html' %}
+
+{% block title %}Платежи - Подписки и платежи{% endblock %}
+{% block page_title %}💳 Управление платежами{% endblock %}
+
+{% block admin_nav %}
+{{ block.super }}
+<a href="{% url 'admin_subscriptions' %}" 
+   {% if request.resolver_match.url_name == 'admin_subscriptions' %}class="active"{% endif %}>
+   💰 Тарифные планы
+</a>
+<a href="{% url 'admin_user_subscriptions' %}" 
+   {% if request.resolver_match.url_name == 'admin_user_subscriptions' %}class="active"{% endif %}>
+   👥 Пользовательские подписки
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="content-box">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin: 0;">История платежей</h2>
+        <div>
+            <a href="{% url 'export_subscriptions' %}?type=payments" class="btn" style="background: #4a5568;">📊 Экспорт</a>
+        </div>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <div style="font-size: 14px; color: #718096;">Всего платежей</div>
+            <div style="font-size: 24px; font-weight: bold;">{{ stats.0|default:0 }}</div>
+        </div>
+        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <div style="font-size: 14px; color: #718096;">Оплачено</div>
+            <div style="font-size: 24px; font-weight: bold; color: #48bb78;">
+                {{ stats.2|default:0 }}
+            </div>
+        </div>
+        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <div style="font-size: 14px; color: #718096;">Общая сумма</div>
+            <div style="font-size: 24px; font-weight: bold;">
+                {{ stats.3|floatformat:2|default:"0.00" }} ₽
+            </div>
+        </div>
+        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <div style="font-size: 14px; color: #718096;">В ожидании</div>
+            <div style="font-size: 24px; font-weight: bold; color: #ed8936;">
+                {{ stats.4|default:0 }}
+            </div>
+        </div>
+    </div>
+
+    <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <form method="get" id="filterForm" style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+            <input type="text" name="search" value="{{ search_query }}" 
+                   placeholder="Поиск по логину, email или ID транзакции..." 
+                   style="flex: 1; padding: 10px; border: 1px solid #e2e8f0; border-radius: 4px;">
+            <button type="submit" class="btn" style="background: #4299e1;">🔍 Поиск</button>
+            <button type="button" onclick="clearFilters()" class="btn" style="background: #a0aec0;">❌ Очистить</button>
+        </form>
+        
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <div>
+                <select name="status" id="statusFilter" onchange="submitForm()" style="padding: 6px 12px; border: 1px solid #e2e8f0; border-radius: 4px;">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>Все статусы</option>
+                    <option value="paid" {% if status_filter == 'paid' %}selected{% endif %}>Оплачен</option>
+                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>В ожидании</option>
+                    <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Отменен</option>
+                </select>
+            </div>
+            
+            <div>
+                <select name="type" id="typeFilter" onchange="submitForm()" style="padding: 6px 12px; border: 1px solid #e2e8f0; border-radius: 4px;">
+                    <option value="all" {% if type_filter == 'all' %}selected{% endif %}>Все типы</option>
+                    <option value="subscription" {% if type_filter == 'subscription' %}selected{% endif %}>Подписка</option>
+                    <option value="purchase" {% if type_filter == 'purchase' %}selected{% endif %}>Покупка контента</option>
+                </select>
+            </div>
+            
+            <div>
+                <input type="date" name="date_from" id="dateFrom" value="{{ date_from }}" 
+                       placeholder="Дата с" style="padding: 6px 12px; border: 1px solid #e2e8f0; border-radius: 4px;"
+                       onchange="submitForm()">
+            </div>
+            <div>
+                <input type="date" name="date_to" id="dateTo" value="{{ date_to }}" 
+                       placeholder="Дата по" style="padding: 6px 12px; border: 1px solid #e2e8f0; border-radius: 4px;"
+                       onchange="submitForm()">
+            </div>
+        </div>
+    </div>
+    
+    {% if payments %}
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID транзакции</th>
+                    <th>Пользователь</th>
+                    <th>Тип</th>
+                    <th>Сумма</th>
+                    <th>Статус</th>
+                    <th>Дата оплаты</th>
+                    <th>Детали</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in payments %}
+                <tr>
+                    <td>
+                        <div style="font-size: 12px; font-family: monospace;">
+                            {{ payment.txn_uuid|slice:":8" }}...
+                        </div>
+                    </td>
+                    <td>
+                        {% if payment.user_login %}
+                        <strong>{{ payment.user_login }}</strong>
+                        <div style="font-size: 12px; color: #718096;">
+                            {{ payment.user_email|truncatechars:20 }}
+                        </div>
+                        {% else %}
+                        <span style="color: #a0aec0;">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if payment.payment_type == 'subscription' %}
+                        <span class="badge" style="background: #4299e1;">Подписка</span>
+                        {% if payment.subscription_name %}
+                        <div style="font-size: 12px; color: #718096;">
+                            {{ payment.subscription_name }}
+                        </div>
+                        {% endif %}
+                        {% elif payment.payment_type == 'purchase' %}
+                        <span class="badge" style="background: #48bb78;">Покупка</span>
+                        {% if payment.content_title %}
+                        <div style="font-size: 12px; color: #718096;">
+                            {{ payment.content_title|truncatechars:30 }}
+                        </div>
+                        {% endif %}
+                        {% else %}
+                        <span class="badge" style="background: #a0aec0;">Другое</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <strong>{{ payment.amount }} ₽</strong>
+                    </td>
+                    <td>
+                        {% if payment.status == 'paid' %}
+                        <span class="badge" style="background: #48bb78;">Оплачен</span>
+                        {% elif payment.status == 'pending' %}
+                        <span class="badge" style="background: #ed8936;">В ожидании</span>
+                        {% elif payment.status == 'cancelled' %}
+                        <span class="badge" style="background: #e53e3e;">Отменен</span>
+                        {% else %}
+                        <span class="badge" style="background: #a0aec0;">{{ payment.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if payment.paid_at %}
+                        {{ payment.paid_at|date:"d.m.Y H:i" }}
+                        {% else %}
+                        <span style="color: #a0aec0;">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if payment.created_at %}
+                        <div style="font-size: 12px; color: #718096;">
+                            создан: {{ payment.created_at|date:"d.m.Y" }}
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td class="actions">
+                        <form method="post" action="{% url 'admin_payment_update' payment.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <select name="status" onchange="this.form.submit()" 
+                                    style="padding: 4px 8px; font-size: 12px; border: 1px solid #e2e8f0; border-radius: 4px;">
+                                <option value="paid" {% if payment.status == 'paid' %}selected{% endif %}>Оплачен</option>
+                                <option value="pending" {% if payment.status == 'pending' %}selected{% endif %}>В ожидании</option>
+                                <option value="cancelled" {% if payment.status == 'cancelled' %}selected{% endif %}>Отменен</option>
+                            </select>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {% if search_query or status_filter != 'all' or type_filter != 'all' or date_from or date_to %}
+    <div style="margin-top: 20px; padding: 10px; background: #f0fff4; border: 1px solid #9ae6b4; border-radius: 4px;">
+        Найдено {{ payments|length }} платежей
+        {% if search_query %}по запросу: "<strong>{{ search_query }}</strong>"{% endif %}
+        {% if status_filter != 'all' %}статус: <strong>{{ status_filter }}</strong>{% endif %}
+        {% if type_filter != 'all' %}тип: <strong>{{ type_filter }}</strong>{% endif %}
+        {% if date_from %}с {{ date_from }}{% endif %}
+        {% if date_to %}по {{ date_to }}{% endif %}
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <div style="text-align: center; padding: 40px; color: #718096;">
+        {% if search_query or status_filter != 'all' or type_filter != 'all' or date_from or date_to %}
+        <p>По заданным фильтрам ничего не найдено</p>
+        <a href="{% url 'admin_payments' %}" class="btn" style="margin-top: 15px;">Показать все платежи</a>
+        {% else %}
+        <p>Платежи не найдены</p>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    document.getElementById('statusFilter').value = urlParams.get('status') || 'all';
+    document.getElementById('typeFilter').value = urlParams.get('type') || 'all';
+    document.getElementById('dateFrom').value = urlParams.get('date_from') || '';
+    document.getElementById('dateTo').value = urlParams.get('date_to') || '';
+    
+    const searchInput = document.querySelector('input[name="search"]');
+    searchInput.value = urlParams.get('search') || '';
+});
+
+function submitForm() {
+    const form = document.getElementById('filterForm');
+    const formData = new FormData(form);
+    
+    const searchValue = document.querySelector('input[name="search"]').value;
+    const statusValue = document.getElementById('statusFilter').value;
+    const typeValue = document.getElementById('typeFilter').value;
+    const dateFromValue = document.getElementById('dateFrom').value;
+    const dateToValue = document.getElementById('dateTo').value;
+    
+    const params = new URLSearchParams();
+    
+    if (searchValue) params.set('search', searchValue);
+    if (statusValue && statusValue !== 'all') params.set('status', statusValue);
+    if (typeValue && typeValue !== 'all') params.set('type', typeValue);
+    if (dateFromValue) params.set('date_from', dateFromValue);
+    if (dateToValue) params.set('date_to', dateToValue);
+
+    window.location.href = '{% url "admin_payments" %}' + (params.toString() ? '?' + params.toString() : '');
+}
+
+function clearFilters() {
+    window.location.href = '{% url "admin_payments" %}';
+}
+</script>
+{% endblock %}

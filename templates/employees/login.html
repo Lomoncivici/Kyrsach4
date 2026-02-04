@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход для сотрудников - КиноВечер</title>
+    <link rel="stylesheet" href="/static/css/employees.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="login-body">
+    <div class="login-container">
+        <div class="logo">
+            <h1>
+                <span>КИНОВЕЧЕР</span>
+            </h1>
+            <p>Панель сотрудников</p>
+        </div>
+        
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                <i class="fas fa-{% if message.tags == 'error' %}exclamation-circle{% elif message.tags == 'success' %}check-circle{% else %}info-circle{% endif %}"></i>
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <form method="post" action="{% url 'employee_login' %}">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="email">Email сотрудника</label>
+                <input type="email" id="email" name="email" class="form-control" 
+                       placeholder="admin@cinema.ru" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Пароль</label>
+                <div class="password-wrapper">
+                    <input type="password" id="password" name="password" 
+                           class="form-control" placeholder="admin123" required>
+                    <button type="button" class="password-toggle" onclick="togglePassword()">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn-login">
+                <i class="fas fa-sign-in-alt"></i>
+                Войти в систему
+            </button>
+        </form>
+        
+        <div class="employee-info">
+            <p>Для доступа к общедоступной версии сайта</p>
+            <p><a href="/">
+                <i class="fas fa-external-link-alt"></i>
+                Перейти на главную страницу
+            </a></p>
+        </div>
+        
+        <div class="test-credentials" style="margin-top: 20px; padding: 10px; border-radius: 5px; font-size: 12px;">
+            <p style="margin: 0; font-weight: bold;">Тестовые данные:</p>
+            <ul style="margin: 5px 0; padding-left: 15px;">
+                <li><strong>Администратор:</strong> admin@cinema.ru / admin123</li>
+                <li><strong>Аналитик:</strong> analyst@cinema.ru / analyst123</li>
+                <li><strong>Поддержка:</strong> support@cinema.ru / support123</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const toggleButton = document.querySelector('.password-toggle i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleButton.classList.remove('fa-eye');
+                toggleButton.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                toggleButton.classList.remove('fa-eye-slash');
+                toggleButton.classList.add('fa-eye');
+            }
+        }
+    </script>
+</body>
+</html>

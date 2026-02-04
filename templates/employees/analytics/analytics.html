@@ -1,0 +1,438 @@
+{% extends 'employees/base.html' %}
+{% load static %}
+
+{% block title %}📈 Аналитика - КиноВечер{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/analytics.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>📈 Панель аналитика/финансиста</h1>
+    <p>Период: {{ start_date }} – {{ end_date }}</p>
+</div>
+
+<div class="period-selector">
+    <h3 style="margin-top: 0;">Выберите период:</h3>
+    <div class="period-buttons">
+        <a href="?period=7d" class="period-btn {% if period == '7d' %}active{% endif %}">7 дней</a>
+        <a href="?period=30d" class="period-btn {% if period == '30d' %}active{% endif %}">30 дней</a>
+        <a href="?period=90d" class="period-btn {% if period == '90d' %}active{% endif %}">90 дней</a>
+        <a href="?period=all" class="period-btn {% if period == 'all' %}active{% endif %}">Все время</a>
+        
+        <form method="GET" style="display: flex; gap: 10px; align-items: center;">
+            <input type="date" name="start_date" value="{{ start_date_str }}" 
+                   style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            <span>по</span>
+            <input type="date" name="end_date" value="{{ end_date_str }}"
+                   style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            <input type="hidden" name="period" value="custom">
+            <button type="submit" 
+                    style="padding: 8px 15px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                Применить
+            </button>
+        </form>
+    </div>
+    
+    <div class="export-buttons">
+        <a href="{% url 'export_analytics' %}?format=csv&period={{ period }}&start_date={{ start_date_str }}&end_date={{ end_date_str }}" 
+           class="btn-excel">
+            📊 Экспорт в Excel
+        </a>
+        <a href="{% url 'export_analytics' %}?format=html&period={{ period }}&start_date={{ start_date_str }}&end_date={{ end_date_str }}" 
+           class="btn-html">
+            📈 Экспорт в HTML
+        </a>
+    </div>
+</div>
+
+<div class="dashboard-container">
+    <div class="stat-card">
+        <h3>💰 Общая выручка</h3>
+        <div class="stat-value">{{ total_revenue|floatformat:2 }} ₽</div>
+        <div class="stat-label">За выбранный период</div>
+        {% if paid_amount > 0 %}
+        <div class="stat-trend trend-up">
+            ▲ {{ paid_amount|floatformat:2 }} ₽ оплачено
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="stat-card">
+        <h3>👥 Новые пользователи</h3>
+        <div class="stat-value">{{ registrations|length }}</div>
+        <div class="stat-label">Регистраций</div>
+        {% if conversion_stats %}
+        <div class="stat-trend trend-info">
+            Конверсия: {{ conversion_stats.3|default:0|floatformat:1 }}%
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="stat-card">
+        <h3>🛒 Покупки контента</h3>
+        {% with total_purchases=purchases|length %}
+        <div class="stat-value">{{ total_purchases }}</div>
+        <div class="stat-label">Транзакций</div>
+        {% endwith %}
+        {% if purchases %}
+        {% with last_day=purchases|last %}
+        {% if last_day.1 > 0 %}
+        <div class="stat-trend trend-up">
+            ▲ {{ last_day.1 }} покупок вчера
+        </div>
+        {% endif %}
+        {% endwith %}
+        {% endif %}
+    </div>
+    
+    <div class="stat-card">
+        <h3>📊 ARPU</h3>
+        {% if arpu_stats %}
+        <div class="stat-value">{{ arpu_stats.2|default:0|floatformat:2 }} ₽</div>
+        <div class="stat-label">Доход на пользователя</div>
+        <div class="stat-trend">
+            {{ arpu_stats.0 }} платящих пользователей
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="stat-card">
+        <h3>⏱️ Активность</h3>
+        {% if user_activity %}
+        <div class="stat-value">{{ user_activity.0 }}</div>
+        <div class="stat-label">Активных пользователей</div>
+        <div class="stat-trend">
+            {{ user_activity.1 }} сессий
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="stat-card">
+        <h3>📈 Удержание</h3>
+        {% if retention_stats %}
+        <div class="stat-value">{{ retention_stats.0.2|default:0|floatformat:1 }}%</div>
+        <div class="stat-label">Retention Week 0</div>
+        <div class="progress-bar">
+            <div class="progress-fill" style="width: {{ retention_stats.0.2|default:0 }}%"></div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="chart-grid">
+    <div class="chart-container">
+        <h3 class="chart-title">📈 Регистрации пользователей</h3>
+        <div class="chart-wrapper">
+            <canvas id="registrationsChart"></canvas>
+        </div>
+    </div>
+    
+    <div class="chart-container">
+        <h3 class="chart-title">💰 Ежедневная выручка</h3>
+        <div class="chart-wrapper">
+            <canvas id="revenueChart"></canvas>
+        </div>
+    </div>
+    
+    <div class="chart-container">
+        <h3 class="chart-title">🛒 Покупки контента</h3>
+        <div class="chart-wrapper">
+            <canvas id="purchasesChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="chart-container">
+    <h3 class="chart-title">📋 Детализация продаж подписок</h3>
+    {% if subscription_types_data %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Тип подписки</th>
+                <th>Период</th>
+                <th>Цена (₽)</th>
+                <th>Всего подписок</th>
+                <th>Оплачено</th>
+                <th>Выручка (₽)</th>
+                <th>Ср. чек (₽)</th>
+                <th>Доля в выручке</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sub in subscription_types_data %}
+            {% with revenue=sub.revenue|default:0 %}
+            {% if total_subscriptions_revenue_all > 0 %}
+                {% widthratio revenue total_subscriptions_revenue_all 100 as revenue_share %}
+            {% else %}
+                {% with revenue_share=0 %}{% endwith %}
+            {% endif %}
+            <tr>
+                <td><strong>{{ sub.name }}</strong></td>
+                <td>{{ sub.period }}</td>
+                <td>{{ sub.price|floatformat:2 }}</td>
+                <td>{{ sub.total_subscriptions }}</td>
+                <td>{{ sub.paid_subscriptions }}</td>
+                <td>
+                    <strong>{{ revenue|floatformat:2 }}</strong>
+                    {% if revenue > 0 %}
+                        <div class="progress-bar" style="margin-top: 5px;">
+                            <div class="progress-fill" style="width: {{ revenue_share }}%"></div>
+                        </div>
+                    {% endif %}
+                </td>
+                <td>{{ sub.avg_revenue|floatformat:2 }}</td>
+                <td>
+                    {{ revenue_share|floatformat:1 }}%
+                </td>
+            </tr>
+            {% endwith %}
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr style="background: #f8fafc; font-weight: 600;">
+                <td colspan="3"><strong>ИТОГО:</strong></td>
+                <td>{{ total_subscriptions_sold }}</td>
+                <td>{{ total_paid_subscriptions }}</td>
+                <td><strong>{{ total_subscriptions_revenue_all|floatformat:2 }} ₽</strong></td>
+                <td>
+                    {% if total_paid_subscriptions > 0 %}
+                        {{ total_subscriptions_revenue_all|divisibleby:total_paid_subscriptions|default:total_subscriptions_revenue_all|floatformat:2 }} ₽
+                    {% else %}
+                        0 ₽
+                    {% endif %}
+                </td>
+                <td>100%</td>
+            </tr>
+        </tfoot>
+    </table>
+    {% else %}
+    <p style="color: #888; text-align: center;">Нет данных о продажах подписок</p>
+    {% endif %}
+</div>
+
+<div class="chart-container">
+    <h3 class="chart-title">🎬 Самый популярный контент</h3>
+    {% if popular_content %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Контент</th>
+                <th>Тип</th>
+                <th>Покупок</th>
+                <th>Выручка</th>
+                <th>Рейтинг</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in popular_content %}
+            <tr>
+                <td>{{ item.0|truncatechars:40 }}</td>
+                <td>
+                    <span class="metric-badge {% if item.1 == 'movie' %}badge-info{% else %}badge-warning{% endif %}">
+                        {{ item.1 }}
+                    </span>
+                </td>
+                <td>{{ item.2 }}</td>
+                <td>{{ item.3|floatformat:2 }} ₽</td>
+                <td>
+                    <span class="metric-badge {% if item.4 >= 4 %}badge-success{% elif item.4 >= 3 %}badge-warning{% else %}badge-danger{% endif %}">
+                        {{ item.4|floatformat:1 }}
+                    </span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: #888; text-align: center;">Нет данных о популярном контенте</p>
+    {% endif %}
+</div>
+
+<div class="chart-container">
+    <h3 class="chart-title">💳 Детальная финансовая статистика</h3>
+    {% if financial_stats %}
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+        <div class="stat-card">
+            <div class="stat-label">Общее кол-во платежей</div>
+            <div class="stat-value">{{ financial_stats.0 }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Успешные платежи</div>
+            <div class="stat-value">{{ financial_stats.5 }}</div>
+            <div class="stat-trend trend-up">
+                {{ financial_stats.2|floatformat:2 }} ₽
+            </div>
+            <div class="stat-desc">Средний чек: {{ financial_stats.8|floatformat:2 }} ₽</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Неудачные платежи</div>
+            <div class="stat-value">{{ financial_stats.6 }}</div>
+            <div class="stat-trend trend-down">
+                {{ financial_stats.3|floatformat:2 }} ₽
+            </div>
+            <div class="stat-desc">Средний чек: {{ financial_stats.9|floatformat:2 }} ₽</div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if financial_stats and financial_stats.2 > 0 %}
+    <div class="insight-card">
+        <p class="insight-text">
+            💡 <strong>Анализ платежей:</strong>
+            Конверсия успешных платежей: 
+            {% with total=financial_stats.0 paid=financial_stats.5 %}
+                {% if total > 0 %}
+                    {% widthratio paid total 100 as conversion %}
+                    <strong>{{ conversion }}%</strong>
+                {% else %}
+                    <strong>0%</strong>
+                {% endif %}
+            {% endwith %}
+            <br>
+            Успешные платежи составляют <strong>{{ financial_stats.2|floatformat:2 }} ₽</strong> 
+            из общей суммы <strong>{{ financial_stats.1|floatformat:2 }} ₽</strong>
+            ({% widthratio financial_stats.2 financial_stats.1 100 %}%).
+        </p>
+    </div>
+    {% endif %}
+    
+    {% if total_revenue > 0 %}
+    <div class="insight-card">
+        <p class="insight-text">
+            💡 <strong>Инсайт:</strong> Общая выручка за период составляет 
+            <strong>{{ total_revenue|floatformat:2 }} ₽</strong>.
+            {% if arpu_stats and arpu_stats.2 > 0 %}
+            Каждый платящий пользователь приносит в среднем {{ arpu_stats.2|floatformat:2 }} ₽.
+            {% endif %}
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+{% if genre_stats %}
+<div class="chart-container">
+    <h3 class="chart-title">🎭 Статистика по жанрам</h3>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Жанр</th>
+                <th>Контента</th>
+                <th>Покупок</th>
+                <th>Выручка</th>
+                <th>Доля</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for genre in genre_stats %}
+            {% with revenue=genre.3|default:0 %}
+            <tr>
+                <td>{{ genre.0 }}</td>
+                <td>{{ genre.1 }}</td>
+                <td>{{ genre.2 }}</td>
+                <td>{{ revenue|floatformat:2 }} ₽</td>
+                <td>
+                    <div class="progress-bar">
+                        {% if total_revenue > 0 %}
+                            {% with percentage=revenue|floatformat:2|add:"0" %}
+                                {% widthratio revenue total_revenue 100 as percentage_int %}
+                                <div class="progress-fill" style="width: {{ percentage_int }}%"></div>
+                                <span style="font-size: 12px; margin-left: 5px;">{{ percentage_int }}%</span>
+                            {% endwith %}
+                        {% else %}
+                            <div class="progress-fill" style="width: 0%"></div>
+                            <span style="font-size: 12px; margin-left: 5px;">0%</span>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endwith %}
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% if retention_stats %}
+<div class="chart-container">
+    <h3 class="chart-title">📊 Удержание пользователей (Retention)</h3>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Когорта</th>
+                <th>Размер</th>
+                <th>Week 0</th>
+                <th>Week 1</th>
+                <th>Week 2</th>
+                <th>Week 3</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cohort in retention_stats %}
+            <tr>
+                <td>{{ cohort.0 }}</td>
+                <td>{{ cohort.1 }}</td>
+                <td>{{ cohort.2|floatformat:1 }}%</td>
+                <td>{{ cohort.3|floatformat:1 }}%</td>
+                <td>{{ cohort.4|floatformat:1 }}%</td>
+                <td>{{ cohort.5|floatformat:1 }}%</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'js/analytics.js' %}"></script>
+
+<script id="analytics-data" type="application/json">
+{
+    "registrations": {{ chart_data_json|safe }}.registrations || [],
+    "daily_revenue": {{ chart_data_json|safe }}.daily_revenue || [],
+    "purchases": {{ chart_data_json|safe }}.purchases || [],
+    "subscriptions": [
+        {% if subscription_stats %}
+            {% for sub in subscription_stats %}
+                {
+                    "plan": "{{ sub.0|escapejs }}",
+                    "total": {{ sub.1|default:0 }},
+                    "active": {{ sub.2|default:0 }},
+                    "not_expired": {{ sub.3|default:0 }},
+                    "expired": {{ sub.4|default:0 }}
+                }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        {% else %}
+            []
+        {% endif %}
+    ]
+}
+</script>
+
+<div class="subscriptions-data" style="display: none;">
+{
+    "labels": [
+        {% for sub in subscription_stats|slice:":5" %}
+        "{{ sub.0|escapejs }}"{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ],
+    "data": [
+        {% for sub in subscription_stats|slice:":5" %}
+        {{ sub.1|default:0 }}{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ]
+}
+</div>
+
+<script>
+window.analyticsChartData = {
+    registrations: {{ chart_data_json|safe }}.registrations || [],
+    daily_revenue: {{ chart_data_json|safe }}.daily_revenue || [],
+    purchases: {{ chart_data_json|safe }}.purchases || [],
+    subscriptions: {{ chart_data_json|safe }}.subscriptions || []
+};
+</script>
+{% endblock %}

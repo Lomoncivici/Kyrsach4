@@ -15,7 +15,7 @@ class MediaAsset(models.Model):
 
 class Content(models.Model):
     id = models.UUIDField(primary_key=True)
-    type = models.CharField(max_length=12)  # movie/series
+    type = models.CharField(max_length=12)
     title = models.TextField(unique=True)
     release_year = models.IntegerField()
     description = models.TextField()
@@ -46,7 +46,7 @@ class Genre(models.Model):
         db_table = t("genres")
 
 class ContentGenre(models.Model):
-    content = models.ForeignKey(
+    content = models.OneToOneField(
         Content, on_delete=models.DO_NOTHING, db_column="content_id", primary_key=True
     )
     genre = models.ForeignKey(
@@ -54,7 +54,7 @@ class ContentGenre(models.Model):
     )
     class Meta:
         managed = False
-        db_table = t("content_genres")
+        db_table = '"cinema"."content_genres"'
         unique_together = (("content","genre"),)
 
 class Season(models.Model):
@@ -86,7 +86,10 @@ class CinemaUser(models.Model):
         db_table = t("users")
 
 class Favorite(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='favorites')
+    user = models.ForeignKey(
+        CinemaUser, on_delete=models.DO_NOTHING, db_column="user_id"
+    )
+
     content = models.ForeignKey('catalog.Content', on_delete=models.CASCADE, related_name='favorited_by')
     created_at = models.DateTimeField(auto_now_add=True)
     
@@ -103,12 +106,12 @@ class Favorite(models.Model):
     created_at = models.DateTimeField()
     class Meta:
         managed = False
-        db_table = t("favorites")
+        db_table = '"cinema"."favorites"'
         unique_together = (("user","content"),)
 
 class Watchlist(models.Model):
     user = models.ForeignKey(
-        CinemaUser, on_delete=models.DO_NOTHING, db_column="user_id", primary_key=True
+        CinemaUser, on_delete=models.DO_NOTHING, db_column="user_id"
     )
     content = models.ForeignKey(
         Content, on_delete=models.DO_NOTHING, db_column="content_id"
@@ -116,7 +119,7 @@ class Watchlist(models.Model):
     created_at = models.DateTimeField()
     class Meta:
         managed = False
-        db_table = t("watchlist")
+        db_table = '"cinema"."watchlist"'
         unique_together = (("user","content"),)
 
 class WatchHistory(models.Model):

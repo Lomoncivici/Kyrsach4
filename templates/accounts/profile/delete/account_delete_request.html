@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="center-card">
+    <div class="card auth-card">
+        <div class="card__header bg-danger text-white" style="border-radius: 18px 18px 0 0; padding: 20px; margin: -28px -28px 20px -28px;">
+            <h1 class="mb-0"><i class="bi bi-trash-fill"></i> Удаление аккаунта</h1>
+        </div>
+
+        <div class="consequences-box" style="background: linear-gradient(135deg, rgba(220, 53, 69, 0.15), rgba(220, 53, 69, 0.08)); border-left: 4px solid #dc3545; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+            <h5 style="color: #dc3545; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                <i class="bi bi-exclamation-triangle-fill"></i> 
+                Внимание! Это действие необратимо
+            </h5>
+            
+            <p style="color: #fff; margin-bottom: 10px; font-weight: 500;">
+                Вы собираетесь удалить свой аккаунт. После подтверждения:
+            </p>
+            
+            <ul style="color: #ffcccc; padding-left: 20px; margin-bottom: 0;">
+                <li style="margin-bottom: 6px; padding-left: 4px;">Все ваши данные будут <strong>безвозвратно удалены</strong></li>
+                <li style="margin-bottom: 6px; padding-left: 4px;">История просмотров, избранное и отзывы будут <strong>очищены</strong></li>
+                <li style="margin-bottom: 6px; padding-left: 4px;">Подписки и покупки будут <strong>аннулированы</strong></li>
+                <li style="margin-bottom: 6px; padding-left: 4px;"><strong>Деньги за покупки не возвращаются</strong></li>
+                <li style="padding-left: 4px;"><strong>Восстановление аккаунта невозможно</strong></li>
+            </ul>
+        </div>
+        
+        <div class="alert alert-info" style="border-left: 4px solid #0dcaf0;">
+            <div style="display: flex; align-items: flex-start; gap: 10px;">
+                <i class="bi bi-envelope" style="color: #0dcaf0; font-size: 18px;"></i>
+                <div>
+                    <strong style="color: #0dcaf0;">Процесс удаления:</strong><br>
+                    Для подтверждения мы отправим ссылку на ваш email.
+                    Перейдите по ссылке из письма для окончательного удаления.
+                </div>
+            </div>
+        </div>
+        
+        <form method="post" style="margin-top: 24px;">
+            {% csrf_token %}
+            
+            <div class="field">
+                <label class="form-label" style="color: #fff; font-weight: 600; margin-bottom: 8px;">
+                    <i class="bi bi-shield-lock"></i> Ваш текущий пароль
+                </label>
+                <input type="password" 
+                       name="password" 
+                       class="form-control" 
+                       required
+                       placeholder="Введите ваш пароль для подтверждения"
+                       style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(220, 53, 69, 0.4); color: #fff;">
+            </div>
+            
+            <div class="field" style="margin-top: 28px;">
+                <button type="submit" class="btn btn-danger w-100" style="padding: 14px; font-weight: 700; font-size: 16px;">
+                    <i class="bi bi-envelope-fill"></i> Отправить запрос на удаление
+                </button>
+            </div>
+            
+            <div class="text-center" style="margin: 20px 0 10px;">
+                <a href="{% url 'profile' %}" class="btn btn-outline-secondary w-100" style="padding: 12px; border-color: #6c757d;">
+                    <i class="bi bi-x-circle"></i> Отмена
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

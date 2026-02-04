@@ -1,0 +1,40 @@
+{% extends 'employees/admin/admin_base.html' %}
+
+{% block title %}Добавить сезон - Управление контентом{% endblock %}
+{% block page_title %}➕ Добавить сезон{% endblock %}
+
+{% block content %}
+<div class="content-box">
+    <h2>Добавление сезона для сериала: {{ series_title }}</h2>
+    
+    {% if messages %}
+    <div class="alert alert-info">
+        {% for message in messages %}
+        {{ message }}
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <form method="post" style="max-width: 600px;">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="season_num">Номер сезона *</label>
+            <input type="number" id="season_num" name="season_num" 
+                   value="{{ next_season }}" min="1" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="description">Описание (опционально)</label>
+            <textarea id="description" name="description" 
+                      placeholder="Описание сезона..."></textarea>
+        </div>
+        
+        <div class="form-group">
+            <button type="submit" class="btn btn-success">Создать сезон</button>
+            <a href="{% url 'admin_seasons_management' %}?series_id={{ series_id }}" 
+               class="btn" style="background: #a0aec0; margin-left: 10px;">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

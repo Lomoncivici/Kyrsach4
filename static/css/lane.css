@@ -16,3 +16,14 @@
 .lane-track{display:flex;gap:16px}
 .lane .card-tile{flex:0 0 auto;width:180px}
 .lane .card-tile img{width:100%;height:260px;object-fit:cover;display:block}
+
+@media (max-width: 900px){
+  .lane-viewport{ overflow-x: auto; scroll-snap-type: x mandatory; }
+  .lane-track{ gap: 12px; padding: 2px; }
+  .lane .card-tile{ width: clamp(140px, 42vw, 200px); scroll-snap-align: start; }
+  .lane-nav{ display: none; }
+}
+@media (min-width: 901px){
+  .lane-viewport{ overflow: hidden; }
+}
+.lane-viewport{ overscroll-behavior-x: contain; }

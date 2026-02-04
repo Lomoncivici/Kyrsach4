@@ -1,0 +1,42 @@
+{% extends 'employees/base.html' %}
+
+{% block title %}Нет доступа - КиноВечер{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>⛔ Нет прав доступа</h1>
+</div>
+
+<div class="content-box" style="text-align: center; padding: 50px;">
+    <div style="font-size: 48px; margin-bottom: 20px;">🔒</div>
+    <h2 style="color: #666; margin-bottom: 20px;">Вам не назначены права доступа</h2>
+    <p style="color: #888; margin-bottom: 30px;">
+        Ваш аккаунт успешно аутентифицирован, но у вас нет назначенных ролей.<br>
+        Обратитесь к администратору системы для получения доступа.
+    </p>
+    
+    <div style="display: inline-flex; gap: 15px;">
+        <a href="{% url 'employee_logout' %}" style="
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            text-decoration: none;
+        ">
+            Выйти из системы
+        </a>
+        
+        <a href="mailto:admin@kinovecher.ru?subject=Доступ%20сотрудника" style="
+            display: inline-block;
+            background: #48bb78;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            text-decoration: none;
+        ">
+            Написать администратору
+        </a>
+    </div>
+</div>
+{% endblock %}
